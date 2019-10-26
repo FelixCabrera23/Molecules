@@ -15,7 +15,7 @@ import random
 
 "Variables importantes a lo largo del programa:"
 L = 100 # Longitud de la caja
-r = L/10 # Radio de las particulas 
+r = L/100 # Radio de las particulas 
 d = r*2 # Diametro de las particulas
 A = L*L # Area del recipiente
 xmin = r # Valor minimo de la coordenada x
@@ -98,8 +98,8 @@ for i in range(N-1):
     
 
 def Quitar (p,red):
-    "Esta funcion quita las particulas aleatoreamente, quita p porciento de particulas de la red"
-    Ni = p/100
+    "Esta funcion quita las particulas aleatoreamente, deja una red de p porciento de la original"
+    Ni = (100-p)/100
     redhexn = red[:] #Copia de la lizta hexagonal que se va a limpiar
     
     for i in range(int(Ni*N)):
@@ -114,18 +114,59 @@ def Quitar (p,red):
 
 
 def Mover (P):
-    "Esta parte mueve las particulas aleatoreamente sin que se salgan de los limites"
+    "Esta parte mueve una particula aleatoreamente sin que se salga de los limites"
     ang = random.random()*2*np.pi
-    xn = P.x + d*np.cos(ang)
-    yn = P.y + d*np.sin(ang)
+    rn = random.random()*r
+    xn = P.x + rn*np.cos(ang)
+    yn = P.y + rn*np.sin(ang)
+    
     if xn <= xmax and xn >= xmin and yn <= ymax and yn >= ymin:
         P = Particula(xn,yn,P.n)
     else:
         P = P
     return P
 
+def Mover_red (red,pasos):
+    redn = red[:] # Copia la red de entrada
+    xs = []
+    ys = []
+    ocupada = int
+    k = int
+    
+    for i in range(len(red)):
+        x = redn[i].x
+        y = redn[i].y
+        xs.append(x)
+        ys.append(y)
+    for i in range(pasos):
+        for j in range(len(red)):
+            Pn = Mover(redn[j])
+            hmax = Pn.x + d
+            hmin = Pn.x - d
+            vmax = Pn.y + d
+            vmin = Pn.y - d
+            k = 0
+            for k in range(len(red)):
+                if k == j:
+                    continue
+                if xs[k] > hmin and xs[k] < hmax and ys[k] > vmin and ys[k] < vmax:
+                    ocupada = 1
+                    break
+                else:
+                    ocupada = 0
+            if ocupada == 1 :
+                continue
+            else:
+                redn[j] = Pn
+                xs[j] = Pn.x
+                ys[j] = Pn.y    
+        
+        Grafica(redn)
+    return(redn)
 
             
+        
+
 
 
 
