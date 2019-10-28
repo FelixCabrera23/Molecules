@@ -5,7 +5,7 @@ Created on Fri Oct 11 23:39:50 2019
 
 @author: Félix Cabrera
 USAC - ECFM
-Proyecto de Materia Condensada: PITO PITO PITO PITO ME GUSTA EL PITO 
+Proyecto de Materia Condensada: 
 Particulas en un resipiente
 """
 
@@ -14,8 +14,8 @@ import numpy as np
 import random
 
 "Variables importantes a lo largo del programa:"
-L = 100 # Longitud de la caja
-r = L/100 # Radio de las particulas 
+L = 200 # Longitud de la caja
+r = L/20 # Radio de las particulas 
 d = r*2 # Diametro de las particulas
 A = L*L # Area del recipiente
 xmin = r # Valor minimo de la coordenada x
@@ -23,6 +23,8 @@ xmax = L -r # Valor maximo de la coordenada x
 ymin = xmin # Valor minimo de la coordenada y
 ymax = xmax # Valor maximo de la coordenada y
 a0 = np.pi/3# Angulo minimo de la red hexagonal
+e = 30 #Profundidad del potencial
+omax = 100 # distancia en el cual el potencial es cero
 
 "Calculo de N"
 nc =int(L/d)
@@ -127,6 +129,7 @@ def Mover (P):
     return P
 
 def Mover_red (red,pasos):
+    "Esta parte mueve toda la red una cantidad de pasos respetando las particulas entre ellas"
     redn = red[:] # Copia la red de entrada
     xs = []
     ys = []
@@ -164,6 +167,17 @@ def Mover_red (red,pasos):
         Grafica(redn)
     return(redn)
 
+"Esta parte mide y define la energia"
+def Energia_P (P_o,P_ext):
+    "Esto define la energia entre un par de particulas"
+    xo = P_o.x
+    yo = P_o.y
+    xi = P_ext.x
+    yi = P_ext.y
+    r = np.sqrt((xo - xi)**2 + (yo - yi)**2)
+    E1 = 4*e*((omax/r)**12 - (omax/r)**6)
+    
+    return(E1)
             
         
 
