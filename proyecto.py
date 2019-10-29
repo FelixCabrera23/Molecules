@@ -279,9 +279,19 @@ def Guardar_archivo (red,nombre):
     
     return('Su archivo ha sido guardado con exito')
 
-
-
-
+def Montecarlo(h,porcentaje,nombre):
+    
+    print('Se esta procesando el %i % de particulas',porcentaje)
+    print(now)
+    print('\n')
+    redor = Quitar(porcentaje,redhex)
+    Guardar_archivo(redor,nombre + 'original')
+    
+    redopt = Optim(redor,h,1)
+    Guardar_archivo(redopt,nombre +'optim')
+    print(now)
+    print('\n')
+    return()
 
 
 
