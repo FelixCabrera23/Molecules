@@ -13,10 +13,12 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 import random
+import sys
+
 
 "Variables importantes a lo largo del programa:"
 L = 200 # Longitud de la caja
-r = L/20 # Radio de las particulas 
+r = L/30 # Radio de las particulas 
 d = r*2 # Diametro de las particulas
 A = L*L # Area del recipiente
 xmin = r # Valor minimo de la coordenada x
@@ -32,6 +34,16 @@ Emax = float(1) # Esta es la energia maxima de la configuracion de la red hexago
 nc =int(L/d)
 nf = int((L)/(d*np.sin(a0)))
 N = nc*nf -int(nf/2)
+
+def progress(count, total, status=''):
+    bar_len = 60
+    filled_len = int(round(bar_len * count / float(total)))
+
+    percents = round(100.0 * count / float(total), 1)
+    bar = '#' * filled_len + '-' * (bar_len - filled_len)
+
+    sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
+    sys.stdout.flush()
 
 def color(E):
     Eni = abs(E/(Emax*1.2))
@@ -54,11 +66,6 @@ def Grafica(red):
         ax.add_patch(red[i].grafica())
     plt.axis([0,L,0,L])
     plt.show()
-
-def xy(r,phi): 
-    "Esta funcion regresa las coordenadas de polares a cartesianas"
-    return r*np.cos(phi), r*np.sin(phi)
-    #Fuente: https://www.iteramos.com/pregunta/83886/trazar-un-circulo-con-pyplot
 
 class Particula(object):
     """Esta clase define la particula con sus coordenadas en el plano x y
@@ -193,6 +200,7 @@ def Energia_red(red):
         Efinal = Efinal + red[i].E
     Eneta = Efinal/len(red)
 
+
     return(Eneta)    
     
 " Esto es la red hexagonal"
@@ -220,6 +228,8 @@ for i in range(N-1):
     
 Emax = Energia_red(redhex)
 
+
+
 "ahora procedemos a optimisar la energia"
 def Optim (red,pasos,mov):
     "Esta funcion toma una red, mueve sus particulas y analiza el cambio en la energia."
@@ -234,12 +244,44 @@ def Optim (red,pasos,mov):
             Eo = Emov
             redop = redmov
             i += 1
-            Grafica(redop)
+#            Grafica(redop)
 #            print(Eo)
+            
         else:
             continue
+        progress(i,pasos, status = 'Optimizando:')
     return(redop)
-        
+    
+    
+def Guardar_archivo (red,nombre):
+    "Esta función guarda la red a un archivo que se generara"
+    Ec = Energia_red(red)
+    file = open('%s%.0f.txt' % (nombre,Ec),'w')
+    for i in range(len(red)):
+        n = redhex[i].n
+        x = redhex[i].x
+        y = redhex[i].y
+        E = redhex[i].E
+        file.write('%i, %f, %f, %f \n' % (n,x,y,E))
+    file.close()
+    
+    "Esta parte guarda la imagen de la red a un archivo.jpeg"
+    plt.clf()
+    ax = plt.gca()
+    for j in range(len(red)):
+        ax.add_patch(red[j].grafica())
+    plt.axis([0,L,0,L])
+    plt.savefig('%s%.0f.jpeg' %(nombre,Ec))
+    
+    return('Su archivo ha sido guardado con exito')
+
+"Parte final donde se le dan las ordenes al programa"
+
+red20 = Quitar(20,redhex)
+Guardar_archivo(red20,'red20')
+
+red20mov = Optim(red20,20,1)
+Guardar_archivo(red20mov,'red20mov')
     
 
 
