@@ -14,6 +14,8 @@ import matplotlib as mpl
 import numpy as np
 import random
 import sys
+from datetime import date
+from datetime import datetime
 
 
 "Variables importantes a lo largo del programa:"
@@ -29,6 +31,8 @@ a0 = np.pi/3# Angulo minimo de la red hexagonal
 e = 3 #Profundidad del potencial
 omax = d*2 # distancia en el cual el potencial es cero
 Emax = float(1) # Esta es la energia maxima de la configuracion de la red hexagonal llena
+today = date.today()
+now = datetime.now()
 
 "Calculo de N"
 nc =int(L/d)
@@ -41,7 +45,7 @@ def progress(count, total, status=''):
 
     percents = round(100.0 * count / float(total), 1)
     bar = '#' * filled_len + '-' * (bar_len - filled_len)
-
+    sys.stdout.flush()
     sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
     sys.stdout.flush()
 
@@ -275,14 +279,11 @@ def Guardar_archivo (red,nombre):
     
     return('Su archivo ha sido guardado con exito')
 
-"Parte final donde se le dan las ordenes al programa"
 
-red20 = Quitar(20,redhex)
-Guardar_archivo(red20,'red20')
 
-red20mov = Optim(red20,20,1)
-Guardar_archivo(red20mov,'red20mov')
-    
+
+
+
 
 
 
