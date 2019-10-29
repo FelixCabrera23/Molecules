@@ -100,7 +100,9 @@ def Quitar (p,red):
     "Es necesario re indexsarlas en la nueva lista"
     for i in range(len(redhexn)):
         redhexn[i] = Particula(redhexn[i].x,redhexn[i].y,i)
-        
+    
+    Energia_red(redhexn)
+    
     return redhexn
 
 
@@ -156,7 +158,7 @@ def Mover_red (red,pasos):
                 xs[j] = Pn.x
                 ys[j] = Pn.y    
         
-        Grafica(redn)
+#        Grafica(redn)
     return(redn)
 
 "Potencial de Lenard Jones"
@@ -217,6 +219,29 @@ for i in range(N-1):
     redhex.append(phn)        
     
 Emax = Energia_red(redhex)
+
+"ahora procedemos a optimisar la energia"
+def Optim (red,pasos,mov):
+    "Esta funcion toma una red, mueve sus particulas y analiza el cambio en la energia."
+    redop = red[:]
+    Eo = Energia_red(redop)
+    i = 0    
+    while i < pasos: 
+        redmov = Mover_red(redop,mov)
+        Emov = Energia_red(redmov)
+        
+        if Emov < Eo:
+            Eo = Emov
+            redop = redmov
+            i += 1
+            Grafica(redop)
+#            print(Eo)
+        else:
+            continue
+    return(redop)
+        
+    
+
 
 
 
