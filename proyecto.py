@@ -10,6 +10,7 @@ Particulas en un resipiente
 """
 
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import numpy as np
 import random
 
@@ -21,19 +22,29 @@ A = L*L # Area del recipiente
 xmin = r # Valor minimo de la coordenada x
 xmax = L -r # Valor maximo de la coordenada x
 ymin = xmin # Valor minimo de la coordenada y
-ymax = xmax # Valor maximo de la coordenada y
+ymax = xmax # Valor maximo de la coordenada y)):,
 a0 = np.pi/3# Angulo minimo de la red hexagonal
-e = 30 #Profundidad del potencial
-omax = 100 # distancia en el cual el potencial es cero
+e = 3 #Profundidad del potencial
+omax = d*2 # distancia en el cual el potencial es cero
+Emax = float(1) # Esta es la energia maxima de la configuracion de la red hexagonal llena
 
 "Calculo de N"
 nc =int(L/d)
 nf = int((L)/(d*np.sin(a0)))
 N = nc*nf -int(nf/2)
 
-def circulo(x,y):
+def color(E):
+    Eni = abs(E/(Emax*1.2))
+    c1 = 'blue'
+    c2 = 'red'
+    c1 = np.array(mpl.colors.to_rgb(c1))
+    c2 = np.array(mpl.colors.to_rgb(c2))
+    return mpl.colors.to_hex((1-Eni)*c1 + Eni*c2)
+
+def circulo(x,y,c):
     "define el circulo en las coordenadas y con su radio apropiado"
-    circ = plt.Circle((x,y),r,fill=False)
+    cn = color(c)
+    circ = plt.Circle((x,y),r,color = cn)
     return circ
 
 def Grafica(red):
@@ -54,16 +65,17 @@ class Particula(object):
     Sera necesario llamar al objeto por medio de una variable que tendra 
     las caracteristicas que la definen que son sus coordenadas."""
     
-    def __init__(self, x=0, y=0, n=0):
+    def __init__(self, x=0, y=0, n=0 , E=0):
         "Esto define las coordenadas x y tambien el numero de particulas que es"
         self.x = x
         self.y = y
         self.n = n
+        self.E = E
 
     def grafica(self):
         "Esto le da a cada particula su grafica"
         # Para llamarla usar Particula.grafica()
-        c = circulo(self.x,self.y)
+        c = circulo(self.x,self.y, self.E)
         return c
         
     def __repr__(self):
@@ -74,30 +86,7 @@ class Particula(object):
     
 # Ya comprobe que puedo guardar las particulas en una lista
 # Ya comprobe que puedo sacar valores de x y de las listas
-# Al llenar la lista entonces tenemos las particulas ya indexadas con el orden de la lista    
-" Esto es la red hexagonal"
-ph0 = Particula(xmin,ymin,0) # Primer particula de la red hexagonal
-redhex = [ph0] # Lista de las particulas en la red hexagonal
-
-for i in range(N-1):
-    "Esta parte leera las coordenadas de la particula anterior"
-    xi = redhex[i].x
-    yi = redhex[i].y
-    xn = xi + d
-    yn = yi
-    n = i +1
-    if int(xn) == int(xmax+r):
-        xn = xmin
-        yn = yi + d*np.sin(np.pi/3)
-    elif xn > xmax+0.01:
-        xn = xmin + r
-        yn = yi + d*np.sin(np.pi/3)
-    else:
-        xn = xn
-        yn = yn
-    phn = Particula(xn,yn,n)
-    redhex.append(phn)
-    
+# Al llenar la lista entonces tenemos las particulas ya indexadas con el orden de la lista     
 
 def Quitar (p,red):
     "Esta funcion quita las particulas aleatoreamente, deja una red de p porciento de la original"
@@ -135,6 +124,7 @@ def Mover_red (red,pasos):
     ys = []
     ocupada = int
     k = int
+    s2 = float
     
     for i in range(len(red)):
         x = redn[i].x
@@ -144,15 +134,17 @@ def Mover_red (red,pasos):
     for i in range(pasos):
         for j in range(len(red)):
             Pn = Mover(redn[j])
-            hmax = Pn.x + d
-            hmin = Pn.x - d
-            vmax = Pn.y + d
-            vmin = Pn.y - d
+            xo = Pn.x
+            yo = Pn.y
             k = 0
+            s2 = L
             for k in range(len(red)):
                 if k == j:
                     continue
-                if xs[k] > hmin and xs[k] < hmax and ys[k] > vmin and ys[k] < vmax:
+                else:
+                    s2 = (xo - xs[k])**2 + (yo - ys[k])**2
+                    
+                if s2 < d**2:
                     ocupada = 1
                     break
                 else:
@@ -167,17 +159,70 @@ def Mover_red (red,pasos):
         Grafica(redn)
     return(redn)
 
-"Esta parte mide y define la energia"
-def Energia_P (P_o,P_ext):
+"Potencial de Lenard Jones"
+def Energia_LJ (P_o,P_ext):
     "Esto define la energia entre un par de particulas"
     xo = P_o.x
     yo = P_o.y
     xi = P_ext.x
     yi = P_ext.y
-    r = np.sqrt((xo - xi)**2 + (yo - yi)**2)
-    E1 = 4*e*((omax/r)**12 - (omax/r)**6)
+    r2 = (xo - xi)**2 + (yo - yi)**2
+    E1 = 4*e*((omax**12/r2**6) - (omax**6/r2**3))
     
     return(E1)
+    
+def Energia_red(red):
+    "Esto toma una red y calcula la energia total"
+    "Tambien le asigna su energia propia a cada particula"
+    Et = float
+    Efinal = 0.0
+    for i in range(len(red)):
+        Po = red[i]
+        Et = 0
+        for j in range(len(red)):
+            if j == i:
+                continue
+            else:
+                En = Energia_LJ(Po,red[j])
+                Et = Et + En
+        red[i] = Particula(Po.x,Po.y,i,Et)
+        
+    for i in range(len(red)):
+        Efinal = Efinal + red[i].E
+    Eneta = Efinal/len(red)
+
+    return(Eneta)    
+    
+" Esto es la red hexagonal"
+ph0 = Particula(xmin,ymin,0) # Primer particula de la red hexagonal
+redhex = [ph0] # Lista de las particulas en la red hexagonal
+
+for i in range(N-1):
+    "Esta parte leera las coordenadas de la particula anterior"
+    xi = redhex[i].x
+    yi = redhex[i].y
+    xn = xi + d
+    yn = yi
+    n = i +1
+    if int(xn) == int(xmax+r):
+        xn = xmin
+        yn = yi + d*np.sin(np.pi/3)
+    elif xn > xmax+0.01:
+        xn = xmin + r
+        yn = yi + d*np.sin(np.pi/3)
+    else:
+        xn = xn
+        yn = yn
+    phn = Particula(xn,yn,n)
+    redhex.append(phn)        
+    
+Emax = Energia_red(redhex)
+
+
+
+
+
+    
             
         
 
