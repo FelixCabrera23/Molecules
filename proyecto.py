@@ -14,13 +14,13 @@ import matplotlib as mpl
 import numpy as np
 import random
 import sys
-from datetime import date
 from datetime import datetime
+from time import time
 
 
 "Variables importantes a lo largo del programa:"
 L = 200 # Longitud de la caja
-r = L/30 # Radio de las particulas 
+r = L/10 # Radio de las particulas 
 d = r*2 # Diametro de las particulas
 A = L*L # Area del recipiente
 xmin = r # Valor minimo de la coordenada x
@@ -28,11 +28,10 @@ xmax = L -r # Valor maximo de la coordenada x
 ymin = xmin # Valor minimo de la coordenada y
 ymax = xmax # Valor maximo de la coordenada y)):,
 a0 = np.pi/3# Angulo minimo de la red hexagonal
-e = 3 #Profundidad del potencial
-omax = d*2 # distancia en el cual el potencial es cero
+e = 100 #Profundidad del potencial
+omax = d*2.5 # distancia en el cual el potencial es cero
 Emax = float(1) # Esta es la energia maxima de la configuracion de la red hexagonal llena
-today = date.today()
-now = datetime.now()
+inicio = datetime.now()
 
 "Calculo de N"
 nc =int(L/d)
@@ -50,7 +49,7 @@ def progress(count, total, status=''):
     sys.stdout.flush()
 
 def color(E):
-    Eni = abs(E/(Emax*1.2))
+    Eni = abs(E/(Emax*1.5))
     c1 = 'blue'
     c2 = 'red'
     c1 = np.array(mpl.colors.to_rgb(c1))
@@ -93,11 +92,6 @@ class Particula(object):
         "Esto hace que al llamar la variable nos devuelva el nombre del objeto"
         return 'Particula{0.n!r}({0.x!r},{0.y!r})'.format(self)
     
-    # Hace falta delimitar que los valores x y solo sean numericos pero que weba
-    
-# Ya comprobe que puedo guardar las particulas en una lista
-# Ya comprobe que puedo sacar valores de x y de las listas
-# Al llenar la lista entonces tenemos las particulas ya indexadas con el orden de la lista     
 
 def Quitar (p,red):
     "Esta funcion quita las particulas aleatoreamente, deja una red de p porciento de la original"
@@ -114,7 +108,7 @@ def Quitar (p,red):
     
     Energia_red(redhexn)
     
-    return redhexn
+    return(redhexn)
 
 
 def Mover (P):
@@ -128,7 +122,7 @@ def Mover (P):
         P = Particula(xn,yn,P.n)
     else:
         P = P
-    return P
+    return(P)
 
 def Mover_red (red,pasos):
     "Esta parte mueve toda la red una cantidad de pasos respetando las particulas entre ellas"
@@ -229,9 +223,8 @@ for i in range(N-1):
         yn = yn
     phn = Particula(xn,yn,n)
     redhex.append(phn)        
-    
-Emax = Energia_red(redhex)
 
+  
 
 
 "ahora procedemos a optimisar la energia"
@@ -245,15 +238,19 @@ def Optim (red,pasos,mov):
         Emov = Energia_red(redmov)
         
         if Emov < Eo:
+            if abs(Emov - Eo) < 0.0001:
+                print('El proceso encontro convergencia despues de '+str(i)+' pasos')
+                break
             Eo = Emov
             redop = redmov
             i += 1
 #            Grafica(redop)
 #            print(Eo)
-            
+           
         else:
             continue
         progress(i,pasos, status = 'Optimizando:')
+               
     return(redop)
     
     
@@ -280,18 +277,36 @@ def Guardar_archivo (red,nombre):
     return('Su archivo ha sido guardado con exito')
 
 def Montecarlo(h,porcentaje,nombre):
-    
-    print('Se esta procesando el %i % de particulas',porcentaje)
-    print(now)
+    """Esta funcion utiliza las funciones desarrolladas anteriormente y calcula la posicion optima de
+    una red de N particulas con radio r y el porcentaje de estas definido por el usuario
+    """
+    tm = time()
+    print('Se esta procesando el '+str(porcentaje)+'% de particulas')
     print('\n')
     redor = Quitar(porcentaje,redhex)
     Guardar_archivo(redor,nombre + 'original')
     
     redopt = Optim(redor,h,1)
+    fin = datetime.now()
     Guardar_archivo(redopt,nombre +'optim')
-    print(now)
-    print('\n')
+    print('Calculado para '+str(len(redor))+' particulas')
+    Dt2 = time() -tm
+    print('en un tiempo de '+str(Dt2)+'s. \n')
+    print(fin)
     return()
+    
+print('Bienvenido: \n Calculando Energia maxima...')
+print(inicio)
+to = time()
+Emax = Energia_red(redhex) # Este calculo es necesario para realizar las optimizaciones
+print('\n calculado para '+str(len(redhex))+' particulas de radio ='+str(r))
+Dt1 = time() -to
+print('en un tiempo de '+str(Dt1)+'s.\n')
+#Grafica(redhex)
+print('Calculando la configuacion optima')
+
+Montecarlo(100,10,'prueba_py3')
+
 
 
 
