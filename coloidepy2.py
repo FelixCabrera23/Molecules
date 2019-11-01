@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
 Created on Fri Oct 11 23:39:50 2019
@@ -7,6 +7,7 @@ Created on Fri Oct 11 23:39:50 2019
 USAC - ECFM
 Proyecto de Materia Condensada: 
 Particulas en un resipiente
+Optimizado para python 2
 """
 
 import numpy as np
@@ -14,6 +15,7 @@ import random
 import sys
 from datetime import date
 from datetime import datetime
+from time import time
 
 
 "Variables importantes a lo largo del programa:"
@@ -166,13 +168,13 @@ def Energia_red(red):
         red[i] = Particula(Po.x,Po.y,i,Et)
     for i in range(len(red)):
         Efinal = Efinal + red[i].E
-    Eneta = Efinal/2.0*len(red)
+    Eneta = Efinal/len(red)
     return(Eneta)
     
 def Quitar (p,red):
 	"Esta funcion quita las particulas aleatoreamente, deja una red de p porciento de la original"
 	Ni = float
-	Ni = (100-p)/100.0
+	Ni = (100.0-p)/100.0
 	redhexn = red[:]
 	for i in range(int(Ni*N)):
 		num = int(random.random()*len(redhexn))
@@ -195,14 +197,20 @@ def Optim (red,pasos,mov):
         Emov = Energia_red(redmov)
         
         if Emov < Eo:
+            if abs(Emov - Eo) < 0.0001:
+                print 'El proceso encontro convergencia despues de '+str(i)+' pasos'
+                print '\n'
+                break
             Eo = Emov
             redop = redmov
             i += 1
-        if Emov > Eo - 0.00001:
-            break
+            if i % 300 == 0:
+                Guardar_archivo(redop,'backup'+str(pasos))
         else:
             continue
+        
         progress(i,pasos, status = 'Optimizando:')
+    print '\n'11
     return(redop)
     
     
@@ -221,23 +229,24 @@ def Guardar_archivo (red,nombre):
     return('Su archivo ha sido guardado con exito')
 
 def Montecarlo(h,porcentaje,nombre):
+    "Esta función hace uso de todas las erramientas antes desarrolladas"
+    print 'Bienvenido'
+    print today
     tm = time()
-    print 'Se esta procesando el '+str(porcentaje)+'% de particulas'
+    print 'A partir de una recipiente lleno con '+str(len(redhex))+' particulas de radio '+str(r)
+    print 'Se esta procesando el '+str(porcentaje)+'% de particulas. \n Numero de pasos maximos:'+str(h)
     redor = Quitar(porcentaje,redhex)
     Guardar_archivo(redor,nombre + '1st')
+    print 'Comenzando ...'
     redopt = Optim(redor,h,1)
-	fin = datetime.now()
+    fin = datetime.now()
     Guardar_archivo(redopt,nombre +'2nd')
-	Dt2 = time() - tm
-	print 'Calculado para '+str(len(redor))+' particulas en un tiempo de '+str(Dt2)+'s. \n'
+    Dt2 = time() - tm
+    print 'Calculado para '+str(len(redor))+' particulas en un tiempo de '+str(Dt2)+'s. \n'
     print fin
     return()
     
-print 'Bienvenido'
-print today
-print 'Comenzando ...'
-
-Montecarlo(20,20,'caracterizacion')
+Montecarlo(200,10,'trials')
 
 
 
