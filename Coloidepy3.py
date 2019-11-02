@@ -233,47 +233,56 @@ def Optim (red,pasos,mov):
     redop = red[:]
     Eo = Energia_red(redop)
     i = 0    
+    Energias = [1,2,3]
+        
     while i < pasos: 
         redmov = Mover_red(redop,mov)
         Emov = Energia_red(redmov)
         
         if Emov < Eo:
-            if abs(Emov - Eo) < 0.0001:
-                print('El proceso encontro convergencia despues de '+str(i)+' pasos')
-                print('\n')
-                break
             Eo = Emov
             redop = redmov
+            Energias.append(Emov)
+            if i % 20 == 0:
+                standev = np.std(Energias[-10:-1])
+                prom = np.average(Energias[-10:-1])
+                Cv = standev / prom
+                if Cv < 0.1:
+                    print('El proceso encontro convergencia despues de '+str(i)+' pasos')
+                    print('\n')
+                    break
+
             i += 1
 #            Grafica(redop)
 #            print(Eo)
-            if i % == 0 :
+            if i % (pasos*0.2) == 0 :
                 Guardar_archivo(redop,'backup'+str(i))
            
         else:
             continue
-        progress(i,pasos, status = 'Optimizando:')
+#        progress(i,pasos, status = 'Optimizando:')
     print('\n')
     return(redop)
      
     
-def Guardar_archivo (red,nombre):
+def Guardar_archivo (red_s,nombre):
     "Esta función guarda la red a un archivo que se generara"
-    Ec = Energia_red(red)
+    Ec = Energia_red(red_s)
     file = open('%s%.0f.txt' % (nombre,Ec),'w')
-    for i in range(len(red)):
-        n = redhex[i].n
-        x = redhex[i].x
-        y = redhex[i].y
-        E = redhex[i].E
+    file.write('%f\n' % (Emax))
+    for i in range(len(red_s)):
+        n = red_s[i].n
+        x = red_s[i].x
+        y = red_s[i].y
+        E = red_s[i].E
         file.write('%i, %f, %f, %f \n' % (n,x,y,E))
     file.close()
     
     "Esta parte guarda la imagen de la red a un archivo.jpeg"
     plt.clf()
     ax = plt.gca()
-    for j in range(len(red)):
-        ax.add_patch(red[j].grafica())
+    for j in range(len(red_s)):
+        ax.add_patch(red_s[j].grafica())
     plt.axis([0,L,0,L])
     plt.savefig('%s%.0f.jpeg' %(nombre,Ec))
     
@@ -283,6 +292,15 @@ def Montecarlo(h,porcentaje,nombre):
     """Esta funcion utiliza las funciones desarrolladas anteriormente y calcula la posicion optima de
     una red de N particulas con radio r y el porcentaje de estas definido por el usuario
     """
+    print('Bienvenido: \nCalculando Energia maxima...')
+    print(inicio)
+    to = time()
+    global Emax
+    Emax = Energia_red(redhex) # Este calculo es necesario para realizar las optimizacione
+    Guardar_archivo(redhex,'redoriginal')
+    print('\n calculado para '+str(len(redhex))+' particulas de radio ='+str(r))
+    Dt1 = time() -to
+    print('en un tiempo de '+str(Dt1)+'s.\n')
     tm = time()
     print('Se esta procesando el '+str(porcentaje)+'% de particulas')
     print('\n')
@@ -299,23 +317,21 @@ def Montecarlo(h,porcentaje,nombre):
 def Recuperar (archivo):
     "Esta función sirve para recuperar un archivo de texto e interpretarlo como una red"
     "Se debe utilizar el nombre en str"
+    global Emax
+    red_recv = []
     with open(archivo) as arch_rec:
-        content =arch_rec.read()
+        En = arch_rec.readline()
+        Emax = float(En)
+        for line in arch_rec:
+            part = line.split(', ')
+            n = int(part[0])
+            x = float(part[1])
+            y = float(part[2])
+            E = float(part[3])
+            red_recv.append(Particula(x,y,n,E))
+    return(red_recv)
     
-    return(content)
-    
-print('Bienvenido: \nCalculando Energia maxima...')
-print(inicio)
-to = time()
-Emax = Energia_red(redhex) # Este calculo es necesario para realizar las optimizacione
-Guardar_archivo(redhex,'redoriginal')
-print('\n calculado para '+str(len(redhex))+' particulas de radio ='+str(r))
-Dt1 = time() -to
-print('en un tiempo de '+str(Dt1)+'s.\n')
-#Grafica(redhex)
-print('Calculando la configuacion optima')
-
-Montecarlo(30,20,'prueba_py3')
+#Montecarlo(1,20,'prueba_py3')
 
 
 
