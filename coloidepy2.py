@@ -191,26 +191,34 @@ def Optim (red,pasos,mov):
     "Esta funcion toma una red, mueve sus particulas y analiza el cambio en la energia."
     redop = red[:]
     Eo = Energia_red(redop)
+    Energias = [1,2,3]
     i = 0    
     while i < pasos: 
         redmov = Mover_red(redop,mov)
         Emov = Energia_red(redmov)
         
         if Emov < Eo:
-            if abs(Emov - Eo) < 0.0001:
-                print 'El proceso encontro convergencia despues de '+str(i)+' pasos'
-                print '\n'
-                break
             Eo = Emov
             redop = redmov
+            Energias.append(Emov)
+            if i+1 % 20 == 0:
+                standev = np.std(Energias[-10:-1])
+                prom = np.average(Energias[-10:-1])
+                Cv = standev / prom
+                if Cv < 0.1:
+                    print('El proceso encontro convergencia despues de '+str(i)+' pasos')
+                    print('\n')
+                    break
+
             i += 1
-            if i % 300 == 0:
-                Guardar_archivo(redop,'backup'+str(pasos))
+            if i % (pasos*0.2) == 0:
+                bup = date.today()
+                Guardar_archivo(redop,str(bup)+'backup'+str(i))
         else:
             continue
         
         progress(i,pasos, status = 'Optimizando:')
-    print '\n'11
+    print '\n'
     return(redop)
     
     
@@ -218,11 +226,12 @@ def Guardar_archivo (red,nombre):
     "Esta función guarda la red a un archivo que se generara"
     Ec = Energia_red(red)
     file = open('%s%.0f.txt' % (nombre,Ec),'w')
+    file.write('%f\n' % (Emax))
     for i in range(len(red)):
-        n = redhex[i].n
-        x = redhex[i].x
-        y = redhex[i].y
-        E = redhex[i].E
+        n = red[i].n
+        x = red[i].x
+        y = red[i].y
+        E = red[i].E
         file.write('%i, %f, %f, %f \n' % (n,x,y,E))
     file.close()
     
@@ -230,23 +239,30 @@ def Guardar_archivo (red,nombre):
 
 def Montecarlo(h,porcentaje,nombre):
     "Esta función hace uso de todas las erramientas antes desarrolladas"
-    print 'Bienvenido'
-    print today
+    print 'Bienvenido '+str(today)+' \n Calculando la energia maxima...'
+    to = time()
+    global Emax
+    Emax = Energia_red(redhex) # Este calculo es necesario para realizar las optimizacione
+    Guardar_archivo(redhex,'redoriginal')
+    print '\n calculado para '+str(len(redhex))+' particulas de radio ='+str(r)
+    Dt1 = time() -to
+    print('en un tiempo de '+str(Dt1)+'s.\n')
     tm = time()
-    print 'A partir de una recipiente lleno con '+str(len(redhex))+' particulas de radio '+str(r)
-    print 'Se esta procesando el '+str(porcentaje)+'% de particulas. \n Numero de pasos maximos:'+str(h)
     redor = Quitar(porcentaje,redhex)
     Guardar_archivo(redor,nombre + '1st')
+    print 'A partir de una recipiente lleno con '+str(len(redhex))+' particulas de radio '+str(r)
+    print 'Se esta procesando el '+str(porcentaje)+'% de particulas ('+str(len(redor))+'). \n Numero de pasos maximos:'+str(h)
+
     print 'Comenzando ...'
     redopt = Optim(redor,h,1)
     fin = datetime.now()
     Guardar_archivo(redopt,nombre +'2nd')
     Dt2 = time() - tm
-    print 'Calculado para '+str(len(redor))+' particulas en un tiempo de '+str(Dt2)+'s. \n'
+    print 'Calculado en un tiempo de '+str(Dt2)+'s. \n'
     print fin
     return()
     
-Montecarlo(200,10,'trials')
+Montecarlo(20,30,'trials')
 
 
 
