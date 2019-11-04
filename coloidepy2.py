@@ -33,6 +33,7 @@ omax = d*2 # distancia en el cual el potencial es cero
 Emax = float(1) # Esta es la energia maxima de la configuracion de la red hexagonal llena
 today = date.today()
 now = datetime.now()
+random.seed(1999)
 
 "Calculo de N"
 nc =int(L/d)
@@ -196,7 +197,6 @@ def Optim (red,pasos,mov):
     while i < pasos: 
         redmov = Mover_red(redop,mov)
         Emov = Energia_red(redmov)
-        
         if Emov < Eo:
             Eo = Emov
             redop = redmov
@@ -204,10 +204,9 @@ def Optim (red,pasos,mov):
             if i+1 % 20 == 0:
                 standev = np.std(Energias[-10:-1])
                 prom = np.average(Energias[-10:-1])
-                Cv = standev / prom
-                if Cv < 0.1:
-                    print('El proceso encontro convergencia despues de '+str(i)+' pasos')
-                    print('\n')
+                Cv = standev / prom 
+                if Cv < 0.01:     
+                    print'El proceso encontro convergencia despues de '+str(i)+' pasos \n'
                     break
 
             i += 1
@@ -262,7 +261,7 @@ def Montecarlo(h,porcentaje,nombre):
     print fin
     return()
     
-Montecarlo(20,30,'trials')
+Montecarlo(20,20,'Corrida1')
 
 
 
