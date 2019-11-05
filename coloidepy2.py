@@ -20,7 +20,7 @@ from time import time
 
 "Variables importantes a lo largo del programa:"
 L = 200 # Longitud de la caja
-r = L/20.0 # Radio de las particulas 
+r = L/200.0 # Radio de las particulas 
 d = r*2 # Diametro de las particulas
 A = L*L # Area del recipiente
 xmin = r # Valor minimo de la coordenada x
@@ -103,43 +103,43 @@ def Mover (P):
         P = P
     return (P)
 
-def Mover_red (red,pasos):
-    "Esta parte mueve toda la red una cantidad de pasos respetando las particulas entre ellas"
-    redn = red[:] # Copia la red de entrada
+def Mover_Particula (redor):
+    "Esta funcion mueve una particula aleatorea de la red un solo paso"
+    redt = redor[:]
+    num = int(random.random()*len(redt))
+    Pn = Mover(redt[num])
     xs = []
     ys = []
     ocupada = int
+    i = int(0)
     s2 = float
-    for i in range(len(red)):
-        x = redn[i].x
-        y = redn[i].y
+    xo = Pn.x
+    yo = Pn.y
+    s2 = L
+    
+    for i in range(len(redt)):
+        x = redt[i].x
+        y = redt[i].y
         xs.append(x)
         ys.append(y)
-    for i in range(pasos):
-        for j in range(len(red)):
-            Pn = Mover(redn[j])
-            xo = Pn.x
-            yo = Pn.y
-            k = 0
-            s2 = L
-            for k in range(len(red)):
-                if k == j:
-                    continue
-                else:
-                    s2 = (xo - xs[k])**2 + (yo - ys[k])**2
-                    
-                if s2 < d**2:
-                    ocupada = 1
-                    break
-                else:
-                    ocupada = 0
-            if ocupada == 1 :
-                continue
-            else:
-                redn[j] = Pn
-                xs[j] = Pn.x
-                ys[j] = Pn.y   
-    return(redn)
+    
+    for i in range(len(redt)):
+        if i == num:
+            continue
+        else:
+            s2 = (xo - xs[i])**2 + (yo - ys[i])**2
+        
+        if s2 < d**2:
+            ocupada = 1
+            break
+        else:
+            ocupada = 0
+    if ocupada == 1:
+        redt[num] = redor[num]
+    else:
+        redt[num] = Pn
+#    Grafica(redt)
+    return(redt)
 
 "Potencial de Lenard Jones"
 def Energia_LJ (P_o,P_ext):
@@ -188,34 +188,36 @@ def Quitar (p,red):
     
 
 "ahora procedemos a optimisar la energia"
-def Optim (red,pasos,mov):
+def Optim (red,pasos):
     "Esta funcion toma una red, mueve sus particulas y analiza el cambio en la energia."
     redop = red[:]
     Eo = Energia_red(redop)
-    Energias = [1,2,3]
     i = 0    
+    Energias = [1,2,3]
+        
     while i < pasos: 
-        redmov = Mover_red(redop,mov)
+        redmov = Mover_Particula(redop)
         Emov = Energia_red(redmov)
+        Ni = len(red)
+        
         if Emov < Eo:
             Eo = Emov
             redop = redmov
             Energias.append(Emov)
-            if i+1 % 20 == 0:
-                standev = np.std(Energias[-10:-1])
-                prom = np.average(Energias[-10:-1])
-                Cv = standev / prom 
-                if Cv < 0.01:     
-                    print'El proceso encontro convergencia despues de '+str(i)+' pasos \n'
+            if i % Ni == 0:
+                standev = np.std(Energias[-Ni:-1])
+                prom = np.average(Energias[-Ni:-1])
+                Cv = standev / prom
+                if Cv < 0.01:
+                    print 'El proceso encontro convergencia despues de '+str(i)+' pasos'
                     break
 
             i += 1
-            if i % (pasos*0.2) == 0:
-                bup = date.today()
-                Guardar_archivo(redop,str(bup)+'backup'+str(i))
+            if i % (pasos*0.2) == 0 :
+                Guardar_archivo(redop,'backup'+str(i))
+           
         else:
             continue
-        
         progress(i,pasos, status = 'Optimizando:')
     print '\n'
     return(redop)
@@ -253,7 +255,7 @@ def Montecarlo(h,porcentaje,nombre):
     print 'Se esta procesando el '+str(porcentaje)+'% de particulas ('+str(len(redor))+'). \n Numero de pasos maximos:'+str(h)
 
     print 'Comenzando ...'
-    redopt = Optim(redor,h,1)
+    redopt = Optim(redor,h)
     fin = datetime.now()
     Guardar_archivo(redopt,nombre +'2nd')
     Dt2 = time() - tm
@@ -261,7 +263,7 @@ def Montecarlo(h,porcentaje,nombre):
     print fin
     return()
     
-Montecarlo(20,20,'Corrida1')
+Montecarlo(100000,30,'Corrida2')
 
 
 
