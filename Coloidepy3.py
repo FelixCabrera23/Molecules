@@ -13,14 +13,13 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 import random
-import sys
 from datetime import datetime
 from time import time
 
 
 "Variables importantes a lo largo del programa:"
-L = 200 # Longitud de la caja
-r = L/30# Radio de las particulas 
+L = 100 # Longitud de la caja
+r = L/20# Radio de las particulas 
 d = r*2 # Diametro de las particulas
 A = L*L # Area del recipiente
 xmin = r # Valor minimo de la coordenada x
@@ -39,18 +38,8 @@ nc =int(L/d)
 nf = int((L)/(d*np.sin(a0)))
 N = nc*nf -int(nf/2)
 
-def progress(count, total, status=''):
-    bar_len = 60
-    filled_len = int(round(bar_len * count / float(total)))
-
-    percents = round(100.0 * count / float(total), 1)
-    bar = '#' * filled_len + '-' * (bar_len - filled_len)
-    sys.stdout.flush()
-    sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
-    sys.stdout.flush()
-
 def color(E):
-    Eni = abs(E/(Emax*1.5))
+    Eni = abs(E/(Emax)*45)
     c1 = 'blue'
     c2 = 'red'
     c1 = np.array(mpl.colors.to_rgb(c1))
@@ -160,7 +149,6 @@ def Mover_Particula (redor):
         redt[num] = redor[num]
     else:
         redt[num] = Pn
-#    Grafica(redt)
     return(redt)
     
 "Potencial de Lenard Jones"
@@ -171,7 +159,7 @@ def Energia_LJ (P_o,P_ext):
     xi = P_ext.x
     yi = P_ext.y
     r2 = (xo - xi)**2 + (yo - yi)**2
-    E1 = 4*e*((omax**12/r2**6) - (omax**6/r2**3))
+    E1 = -4*e*((omax**12/r2**6) - (omax**6/r2**3))
     
     return(E1)
     
@@ -193,9 +181,7 @@ def Energia_red(red):
         
     for i in range(len(red)):
         Efinal = Efinal + red[i].E
-    Eneta = Efinal/len(red)
-
-
+    Eneta = Efinal/2
     return(Eneta)    
     
 " Esto es la red hexagonal"
@@ -245,22 +231,18 @@ def Optim (red,pasos):
             if i % Ni == 0:
                 standev = np.std(Energias[-Ni:-1])
                 prom = np.average(Energias[-Ni:-1])
-                Cv = standev / prom
-                if Cv < 0.01:
+                Cv = standev / prom   # Coeficiente de variacion
+                if Cv < 0.001:
                     Cv_count+=1
-                if Cv_count == 6:
-                    print('El proceso encontro convergencia despues de '+str(i)+' pasos')
+                if Cv_count == 3:
+                    print('\n El proceso encontro convergencia despues de ')#Montecarlo(2000,30,'joe')+str(i)+' pasos')
                     break
-
             i += 1
-#            Grafica(redop)
+            Grafica(redop)
             if i % (pasos*0.2) == 0 :
-                Guardar_archivo(redop,'backup'+str(i))
-           
+                Guardar_archivo(redop,'backup'+str(i))      
         else:
             continue
-        progress(i,pasos, status = 'Optimizando:')
-    print('\n')
     return(redop)
      
     
@@ -268,13 +250,11 @@ def Guardar_archivo (red_s,nombre):
     "Esta función guarda la red a un archivo que se generara"
     Ec = Energia_red(red_s)
     file = open('%s%.0f.txt' % (nombre,Ec),'w')
-    file.write('%f\n' % (Emax))
+    file.write('%f\n' % (Ec))
     for i in range(len(red_s)):
-        n = red_s[i].n
         x = red_s[i].x
         y = red_s[i].y
-        E = red_s[i].E
-        file.write('%i, %f, %f, %f \n' % (n,x,y,E))
+        file.write('%f %f\n' % (x,y))
     file.close()
     
     "Esta parte guarda la imagen de la red a un archivo.jpeg"
@@ -291,15 +271,8 @@ def Montecarlo(h,porcentaje,nombre):
     """Esta funcion utiliza las funciones desarrolladas anteriormente y calcula la posicion optima de
     una red de N particulas con radio r y el porcentaje de estas definido por el usuario
     """
-    print('Bienvenido: \nCalculando Energia maxima...')
+    print('Bienvenido: \nCalculando Energia...')
     print(inicio)
-    to = time()
-    global Emax
-    Emax = Energia_red(redhex) # Este calculo es necesario para realizar las optimizacione
-    Guardar_archivo(redhex,'redoriginal')
-    print('\n calculado para '+str(len(redhex))+' particulas de radio ='+str(r))
-    Dt1 = time() -to
-    print('en un tiempo de '+str(Dt1)+'s.\n')
     tm = time()
     print('Se esta procesando el '+str(porcentaje)+'% de particulas')
     print('\n')
@@ -322,15 +295,17 @@ def Recuperar (archivo):
         En = arch_rec.readline()
         Emax = float(En)
         for line in arch_rec:
-            part = line.split(', ')
-            n = int(part[0])
-            x = float(part[1])
-            y = float(part[2])
-            E = float(part[3])
-            red_recv.append(Particula(x,y,n,E))
+            part = line.split(' ')
+            x = float(part[0])
+            y = float(part[1])
+            red_recv.append(Particula(x,y))
+        for i in range(len(red_recv)):
+            red_recv[i] = Particula(red_recv[i].x,red_recv[i].y,i)
+        Energia_red(red_recv)
     return(red_recv)
-    
-#Montecarlo(1,20,'prueba_py3')
+
+#Emax = Energia_red(redhex)
+#Montecarlo(100,30,'Rachel2')
 
 
 
