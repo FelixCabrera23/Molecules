@@ -20,7 +20,7 @@ from time import time
 
 "Variables importantes a lo largo del programa:"
 L = 200 # Longitud de la caja
-r = L/20# Radio de las particulas 
+r = L/30# Radio de las particulas 
 d = r*2 # Diametro de las particulas
 A = L*L # Area del recipiente
 xmin = r # Valor minimo de la coordenada x
@@ -32,6 +32,7 @@ e = 100 #Profundidad del potencial
 omax = d*2.5 # distancia en el cual el potencial es cero
 Emax = float(1) # Esta es la energia maxima de la configuracion de la red hexagonal llena
 inicio = datetime.now()
+random.seed(1999)
 
 "Calculo de N"
 nc =int(L/d)
@@ -110,7 +111,6 @@ def Quitar (p,red):
     
     return(redhexn)
 
-
 def Mover (P):
     "Esta parte mueve una particula aleatoreamente sin que se salga de los limites"
     ang = random.random()*2*np.pi
@@ -124,48 +124,45 @@ def Mover (P):
         P = P
     return(P)
 
-def Mover_red (red,pasos):
-    "Esta parte mueve toda la red una cantidad de pasos respetando las particulas entre ellas"
-    redn = red[:] # Copia la red de entrada
+    
+def Mover_Particula (redor):
+    "Esta funcion mueve una particula aleatorea de la red un solo paso"
+    redt = redor[:]
+    num = int(random.random()*len(redt))
+    Pn = Mover(redt[num])
     xs = []
     ys = []
     ocupada = int
-    k = int
+    i = int(0)
     s2 = float
+    xo = Pn.x
+    yo = Pn.y
+    s2 = L
     
-    for i in range(len(red)):
-        x = redn[i].x
-        y = redn[i].y
+    for i in range(len(redt)):
+        x = redt[i].x
+        y = redt[i].y
         xs.append(x)
         ys.append(y)
-    for i in range(pasos):
-        for j in range(len(red)):
-            Pn = Mover(redn[j])
-            xo = Pn.x
-            yo = Pn.y
-            k = 0
-            s2 = L
-            for k in range(len(red)):
-                if k == j:
-                    continue
-                else:
-                    s2 = (xo - xs[k])**2 + (yo - ys[k])**2
-                    
-                if s2 < d**2:
-                    ocupada = 1
-                    break
-                else:
-                    ocupada = 0
-            if ocupada == 1 :
-                continue
-            else:
-                redn[j] = Pn
-                xs[j] = Pn.x
-                ys[j] = Pn.y    
+    
+    for i in range(len(redt)):
+        if i == num:
+            continue
+        else:
+            s2 = (xo - xs[i])**2 + (yo - ys[i])**2
         
-#        Grafica(redn)
-    return(redn)
-
+        if s2 < d**2:
+            ocupada = 1
+            break
+        else:
+            ocupada = 0
+    if ocupada == 1:
+        redt[num] = redor[num]
+    else:
+        redt[num] = Pn
+#    Grafica(redt)
+    return(redt)
+    
 "Potencial de Lenard Jones"
 def Energia_LJ (P_o,P_ext):
     "Esto define la energia entre un par de particulas"
@@ -228,39 +225,41 @@ for i in range(N-1):
 
 
 "ahora procedemos a optimisar la energia"
-def Optim (red,pasos,mov):
+def Optim (red,pasos):
     "Esta funcion toma una red, mueve sus particulas y analiza el cambio en la energia."
     redop = red[:]
     Eo = Energia_red(redop)
     i = 0    
     Energias = [1,2,3]
-        
+    Cv_count = 0
+    
     while i < pasos: 
-        redmov = Mover_red(redop,mov)
+        redmov = Mover_Particula(redop)
         Emov = Energia_red(redmov)
+        Ni = len(red)
         
         if Emov < Eo:
             Eo = Emov
             redop = redmov
             Energias.append(Emov)
-            if i % 20 == 0:
-                standev = np.std(Energias[-10:-1])
-                prom = np.average(Energias[-10:-1])
+            if i % Ni == 0:
+                standev = np.std(Energias[-Ni:-1])
+                prom = np.average(Energias[-Ni:-1])
                 Cv = standev / prom
-                if Cv < 0.1:
+                if Cv < 0.01:
+                    Cv_count+=1
+                if Cv_count == 6:
                     print('El proceso encontro convergencia despues de '+str(i)+' pasos')
-                    print('\n')
                     break
 
             i += 1
 #            Grafica(redop)
-#            print(Eo)
             if i % (pasos*0.2) == 0 :
                 Guardar_archivo(redop,'backup'+str(i))
            
         else:
             continue
-#        progress(i,pasos, status = 'Optimizando:')
+        progress(i,pasos, status = 'Optimizando:')
     print('\n')
     return(redop)
      
@@ -306,7 +305,7 @@ def Montecarlo(h,porcentaje,nombre):
     print('\n')
     redor = Quitar(porcentaje,redhex)
     Guardar_archivo(redor,nombre + '1st')
-    redopt = Optim(redor,h,1)
+    redopt = Optim(redor,h)
     fin = datetime.now()
     Guardar_archivo(redopt,nombre +'2nd')
     Dt2 = time() -tm
