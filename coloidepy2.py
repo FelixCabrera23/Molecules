@@ -12,14 +12,13 @@ Optimizado para python 2
 
 import numpy as np
 import random
-import sys
 from datetime import date
 from datetime import datetime
 from time import time
 
 
 "Variables importantes a lo largo del programa:"
-L = 200 # Longitud de la caja
+L = 100 # Longitud de la caja
 r = L/200.0 # Radio de las particulas 
 d = r*2 # Diametro de las particulas
 A = L*L # Area del recipiente
@@ -39,15 +38,6 @@ random.seed(1999)
 nc =int(L/d)
 nf = int((L)/(d*np.sin(a0)))
 N = nc*nf -int(nf/2)
-
-def progress(count, total, status=''):
-    bar_len = 60
-    filled_len = int(round(bar_len * count / float(total)))
-    percents = round(100.0 * count / float(total), 1)
-    bar = '#' * filled_len + '-' * (bar_len - filled_len)
-    sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
-    sys.stdout.flush()
-
 
 class Particula(object):
     """Esta clase define la particula con sus coordenadas en el plano x y
@@ -149,7 +139,7 @@ def Energia_LJ (P_o,P_ext):
     xi = P_ext.x
     yi = P_ext.y
     r2 = (xo - xi)**2 + (yo - yi)**2
-    E1 = 4*e*((omax**12/r2**6) - (omax**6/r2**3))
+    E1 = -4*e*((omax**12/r2**6) - (omax**6/r2**3))
     return(E1)
     
 def Energia_red(red):
@@ -166,10 +156,9 @@ def Energia_red(red):
             else:
                 En = Energia_LJ(Po,red[j])
                 Et = Et + En
-        red[i] = Particula(Po.x,Po.y,i,Et)
     for i in range(len(red)):
         Efinal = Efinal + red[i].E
-    Eneta = Efinal/len(red)
+    Eneta = Efinal/2
     return(Eneta)
     
 def Quitar (p,red):
@@ -194,12 +183,11 @@ def Optim (red,pasos):
     Eo = Energia_red(redop)
     i = 0    
     Energias = [1,2,3]
-        
+    Cv_count = 0
     while i < pasos: 
         redmov = Mover_Particula(redop)
         Emov = Energia_red(redmov)
         Ni = len(red)
-        
         if Emov < Eo:
             Eo = Emov
             redop = redmov
@@ -208,18 +196,16 @@ def Optim (red,pasos):
                 standev = np.std(Energias[-Ni:-1])
                 prom = np.average(Energias[-Ni:-1])
                 Cv = standev / prom
-                if Cv < 0.01:
-                    print 'El proceso encontro convergencia despues de '+str(i)+' pasos'
+                if Cv < 0.001:
+                    Cv_count+=1
+                if Cv_count == 10:
+                    print '\n El proceso encontro convergencia despues de '+str(i)+' pasos'
                     break
-
             i += 1
             if i % (pasos*0.2) == 0 :
                 Guardar_archivo(redop,'backup'+str(i))
-           
         else:
             continue
-        progress(i,pasos, status = 'Optimizando:')
-    print '\n'
     return(redop)
     
     
@@ -227,13 +213,11 @@ def Guardar_archivo (red,nombre):
     "Esta función guarda la red a un archivo que se generara"
     Ec = Energia_red(red)
     file = open('%s%.0f.txt' % (nombre,Ec),'w')
-    file.write('%f\n' % (Emax))
+    file.write('%f\n' % (Ec))
     for i in range(len(red)):
-        n = red[i].n
         x = red[i].x
         y = red[i].y
-        E = red[i].E
-        file.write('%i, %f, %f, %f \n' % (n,x,y,E))
+        file.write('%f %f\n' % (x,y))
     file.close()
     
     return('Su archivo ha sido guardado con exito')
@@ -241,20 +225,11 @@ def Guardar_archivo (red,nombre):
 def Montecarlo(h,porcentaje,nombre):
     "Esta función hace uso de todas las erramientas antes desarrolladas"
     print 'Bienvenido '+str(today)+' \n Calculando la energia maxima...'
-    to = time()
-    global Emax
-    Emax = Energia_red(redhex) # Este calculo es necesario para realizar las optimizacione
-    Guardar_archivo(redhex,'redoriginal')
-    print '\n calculado para '+str(len(redhex))+' particulas de radio ='+str(r)
-    Dt1 = time() -to
-    print('en un tiempo de '+str(Dt1)+'s.\n')
+
     tm = time()
     redor = Quitar(porcentaje,redhex)
     Guardar_archivo(redor,nombre + '1st')
-    print 'A partir de una recipiente lleno con '+str(len(redhex))+' particulas de radio '+str(r)
     print 'Se esta procesando el '+str(porcentaje)+'% de particulas ('+str(len(redor))+'). \n Numero de pasos maximos:'+str(h)
-
-    print 'Comenzando ...'
     redopt = Optim(redor,h)
     fin = datetime.now()
     Guardar_archivo(redopt,nombre +'2nd')
@@ -263,9 +238,79 @@ def Montecarlo(h,porcentaje,nombre):
     print fin
     return()
     
-Montecarlo(100000,30,'Corrida2')
+Montecarlo(100,2,'Corrida1')
+
+Montecarlo(200,2,'Corrida2')
+
+Montecarlo(300,2,'Corrida3')
+
+Montecarlo(400,2,'Corrida4')
+
+Montecarlo(500,2,'Corrida5')
+
+Montecarlo(600,2,'Corrida6')
+
+Montecarlo(700,2,'Corrida7')
+
+Montecarlo(800,2,'Corrida8')
+
+Montecarlo(900,2,'Corrida9')
+
+Montecarlo(1000,2,'Corrida10')
+
+Montecarlo(1100,2,'Corrida11')
+
+Montecarlo(1200,2,'Corrida12')
+
+Montecarlo(1300,2,'Corrida13')
+
+Montecarlo(1400,2,'Corrida14')
+
+Montecarlo(1500,2,'Corrida15')
+
+Montecarlo(1600,2,'Corrida16')
+
+Montecarlo(1700,2,'Corrida17')
+
+Montecarlo(1800,2,'Corrida18')
+
+Montecarlo(1900,2,'Corrida19')
+
+Montecarlo(2000,2,'Corrida20')
+
+Montecarlo(2100,2,'Corrida21')
+
+Montecarlo(2200,2,'Corrida22')
+
+Montecarlo(2300,2,'Corrida23')
+
+Montecarlo(2400,2,'Corrida24')
+
+Montecarlo(2500,2,'Corrida25')
+
+Montecarlo(1000,1,'tiempo1')
+
+Montecarlo(1000,2,'tiempo2')
+
+Montecarlo(1000,3,'tiempo3')
+
+Montecarlo(1000,4,'tiempo4')
+
+Montecarlo(1000,5,'tiempo5')
+
+Montecarlo(1000,6,'tiempo6')
+
+Montecarlo(1000,7,'tiempo7')
+
+Montecarlo(1000,8,'tiempo8')
+
+Montecarlo(1000,9,'tiempo9')
+
+Montecarlo(1000,10,'tiempo10')
 
 
+
+#TIME="Elap time ([h:]m:s) %E \nMax resident Memory (Kb) %M" /usr/bin/time python2 coloidepy2.py
 
 
 
