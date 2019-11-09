@@ -18,20 +18,21 @@ from time import time
 
 
 "Variables importantes a lo largo del programa:"
-L = 100 # Longitud de la caja
-r = L/20# Radio de las particulas 
+L = 100.0 # Longitud de la caja
+r = L/70.0# Radio de las particulas 
 d = r*2 # Diametro de las particulas
 A = L*L # Area del recipiente
 xmin = r # Valor minimo de la coordenada x
 xmax = L -r # Valor maximo de la coordenada x
 ymin = xmin # Valor minimo de la coordenada y
 ymax = xmax # Valor maximo de la coordenada y)):,
-a0 = np.pi/3# Angulo minimo de la red hexagonal
+a0 = np.pi/3.0# Angulo minimo de la red hexagonal
 e = 100 #Profundidad del potencial
-omax = d*2.5 # distancia en el cual el potencial es cero
-Emax = float(1) # Esta es la energia maxima de la configuracion de la red hexagonal llena
+omax = d*1.5 # distancia en el cual el potencial es cero
 inicio = datetime.now()
 random.seed(1999)
+Emax = float()
+
 
 "Calculo de N"
 nc =int(L/d)
@@ -39,7 +40,9 @@ nf = int((L)/(d*np.sin(a0)))
 N = nc*nf -int(nf/2)
 
 def color(E):
-    Eni = abs(E/(Emax)*45)
+    Eni = abs(E/Emax)
+    if Eni > 1:
+        Eni = 1
     c1 = 'blue'
     c2 = 'red'
     c1 = np.array(mpl.colors.to_rgb(c1))
@@ -159,7 +162,7 @@ def Energia_LJ (P_o,P_ext):
     xi = P_ext.x
     yi = P_ext.y
     r2 = (xo - xi)**2 + (yo - yi)**2
-    E1 = -4*e*((omax**12/r2**6) - (omax**6/r2**3))
+    E1 = 4*e*((omax**12/r2**6) - (omax**6/r2**3))
     
     return(E1)
     
@@ -234,11 +237,12 @@ def Optim (red,pasos):
                 Cv = standev / prom   # Coeficiente de variacion
                 if Cv < 0.001:
                     Cv_count+=1
-                if Cv_count == 3:
-                    print('\n El proceso encontro convergencia despues de ')#Montecarlo(2000,30,'joe')+str(i)+' pasos')
+                if Cv_count == 6:
+                    print('\n El proceso encontro convergencia despues de ' +str(i) +'pasos')#Montecarlo(2000,30,'joe')+str(i)+' pasos')
                     break
             i += 1
             Grafica(redop)
+            print(Eo)
             if i % (pasos*0.2) == 0 :
                 Guardar_archivo(redop,'backup'+str(i))      
         else:
@@ -250,7 +254,7 @@ def Guardar_archivo (red_s,nombre):
     "Esta función guarda la red a un archivo que se generara"
     Ec = Energia_red(red_s)
     file = open('%s%.0f.txt' % (nombre,Ec),'w')
-    file.write('%f\n' % (Ec))
+    file.write('# %f\n' % (Ec))
     for i in range(len(red_s)):
         x = red_s[i].x
         y = red_s[i].y
@@ -271,12 +275,14 @@ def Montecarlo(h,porcentaje,nombre):
     """Esta funcion utiliza las funciones desarrolladas anteriormente y calcula la posicion optima de
     una red de N particulas con radio r y el porcentaje de estas definido por el usuario
     """
+    global Emax
     print('Bienvenido: \nCalculando Energia...')
     print(inicio)
     tm = time()
     print('Se esta procesando el '+str(porcentaje)+'% de particulas')
     print('\n')
     redor = Quitar(porcentaje,redhex)
+    Emax = Energia_red(redor)
     Guardar_archivo(redor,nombre + '1st')
     redopt = Optim(redor,h)
     fin = datetime.now()
