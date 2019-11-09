@@ -18,7 +18,7 @@ from time import time
 
 
 "Variables importantes a lo largo del programa:"
-L = 100 # Longitud de la caja
+L = 100.0 # Longitud de la caja
 r = L/200.0 # Radio de las particulas 
 d = r*2 # Diametro de las particulas
 A = L*L # Area del recipiente
@@ -128,7 +128,6 @@ def Mover_Particula (redor):
         redt[num] = redor[num]
     else:
         redt[num] = Pn
-#    Grafica(redt)
     return(redt)
 
 "Potencial de Lenard Jones"
@@ -139,7 +138,7 @@ def Energia_LJ (P_o,P_ext):
     xi = P_ext.x
     yi = P_ext.y
     r2 = (xo - xi)**2 + (yo - yi)**2
-    E1 = -4*e*((omax**12/r2**6) - (omax**6/r2**3))
+    E1 = 4*e*((omax**12/r2**6) - (omax**6/r2**3))
     return(E1)
     
 def Energia_red(red):
@@ -156,9 +155,10 @@ def Energia_red(red):
             else:
                 En = Energia_LJ(Po,red[j])
                 Et = Et + En
+        red[i] = Particula(Po.x,Po.y,i,Et)
     for i in range(len(red)):
         Efinal = Efinal + red[i].E
-    Eneta = Efinal/2
+    Eneta = Efinal/2.0
     return(Eneta)
     
 def Quitar (p,red):
@@ -184,10 +184,12 @@ def Optim (red,pasos):
     i = 0    
     Energias = [1,2,3]
     Cv_count = 0
+    
     while i < pasos: 
         redmov = Mover_Particula(redop)
         Emov = Energia_red(redmov)
         Ni = len(red)
+        
         if Emov < Eo:
             Eo = Emov
             redop = redmov
@@ -195,15 +197,15 @@ def Optim (red,pasos):
             if i % Ni == 0:
                 standev = np.std(Energias[-Ni:-1])
                 prom = np.average(Energias[-Ni:-1])
-                Cv = standev / prom
+                Cv = standev / prom   # Coeficiente de variacion
                 if Cv < 0.001:
                     Cv_count+=1
-                if Cv_count == 10:
+                if Cv_count == 6:
                     print '\n El proceso encontro convergencia despues de '+str(i)+' pasos'
                     break
             i += 1
             if i % (pasos*0.2) == 0 :
-                Guardar_archivo(redop,'backup'+str(i))
+                Guardar_archivo(redop,'backup'+str(i))      
         else:
             continue
     return(redop)
@@ -212,7 +214,7 @@ def Optim (red,pasos):
 def Guardar_archivo (red,nombre):
     "Esta función guarda la red a un archivo que se generara"
     Ec = Energia_red(red)
-    file = open('%s%.0f.txt' % (nombre,Ec),'w')
+    file = open('# %s%.0f.txt' % (nombre,Ec),'w')
     file.write('%f\n' % (Ec))
     for i in range(len(red)):
         x = red[i].x
@@ -237,81 +239,8 @@ def Montecarlo(h,porcentaje,nombre):
     print 'Calculado en un tiempo de '+str(Dt2)+'s. \n'
     print fin
     return()
-    
-Montecarlo(100,2,'Corrida1')
 
-Montecarlo(200,2,'Corrida2')
-
-Montecarlo(300,2,'Corrida3')
-
-Montecarlo(400,2,'Corrida4')
-
-Montecarlo(500,2,'Corrida5')
-
-Montecarlo(600,2,'Corrida6')
-
-Montecarlo(700,2,'Corrida7')
-
-Montecarlo(800,2,'Corrida8')
-
-Montecarlo(900,2,'Corrida9')
-
-Montecarlo(1000,2,'Corrida10')
-
-Montecarlo(1100,2,'Corrida11')
-
-Montecarlo(1200,2,'Corrida12')
-
-Montecarlo(1300,2,'Corrida13')
-
-Montecarlo(1400,2,'Corrida14')
-
-Montecarlo(1500,2,'Corrida15')
-
-Montecarlo(1600,2,'Corrida16')
-
-Montecarlo(1700,2,'Corrida17')
-
-Montecarlo(1800,2,'Corrida18')
-
-Montecarlo(1900,2,'Corrida19')
-
-Montecarlo(2000,2,'Corrida20')
-
-Montecarlo(2100,2,'Corrida21')
-
-Montecarlo(2200,2,'Corrida22')
-
-Montecarlo(2300,2,'Corrida23')
-
-Montecarlo(2400,2,'Corrida24')
-
-Montecarlo(2500,2,'Corrida25')
-
-Montecarlo(1000,1,'tiempo1')
-
-Montecarlo(1000,2,'tiempo2')
-
-Montecarlo(1000,3,'tiempo3')
-
-Montecarlo(1000,4,'tiempo4')
-
-Montecarlo(1000,5,'tiempo5')
-
-Montecarlo(1000,6,'tiempo6')
-
-Montecarlo(1000,7,'tiempo7')
-
-Montecarlo(1000,8,'tiempo8')
-
-Montecarlo(1000,9,'tiempo9')
-
-Montecarlo(1000,10,'tiempo10')
-
-
-
-#TIME="Elap time ([h:]m:s) %E \nMax resident Memory (Kb) %M" /usr/bin/time python2 coloidepy2.py
-
+Montecarlo(10000,2,'helga')
 
 
 
