@@ -15,11 +15,12 @@ import numpy as np
 import random
 from datetime import datetime
 from time import time
+import sys
 
 
 "Variables importantes a lo largo del programa:"
-L = 200.0 # Longitud de la caja
-r = L/100.0# Radio de las particulas 
+L = 100.0 # Longitud de la caja
+r = L/200.0# Radio de las particulas 
 d = r*2 # Diametro de las particulas
 A = L*L # Area del recipiente
 xmin = r # Valor minimo de la coordenada x
@@ -42,12 +43,25 @@ nc =int(L/d)
 nf = int((L)/(d*np.sin(a0)))
 N = nc*nf -int(nf/2)
 
+def progress(count, total, status=''):
+    bar_len = 60
+    filled_len = int(round(bar_len * count / float(total)))
+
+    percents = round(100.0 * count / float(total), 1)
+    bar = '#' * filled_len + '-' * (bar_len - filled_len)
+    sys.stdout.flush()
+    sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
+    sys.stdout.flush()
+
 def color(E):
     if Emax == 1.0:
         Eni = 0
     else:
         En = abs(Ecolormax) - abs(E)
-        Eni = abs(E/En)
+        if En != 0:
+            Eni = abs(E/En)
+        else:
+            Eni = 1
     if Eni > 1:
         Eni = 0
     c1 = 'blue'
@@ -193,21 +207,18 @@ for i in range(N-1):
     xn = xi + d
     yn = yi
     n = i +1
-    if int(xn) > int(xmax) and int(xn) < int(xmax +d):
+    if round(xn,2) > round(xmax,2) and round(xn,2) < round(xmax +(0.66*d),2):
         xn = xmin
-        yn = yi + d*np.sin(np.pi/3)
-    elif int(xn) > int(xmax):
+        yn = yi + d*np.sin(a0)
+    elif round(xn,2) > round(xmax + r,2):
         xn = xmin + r
-        yn = yi + d*np.sin(np.pi/3)
+        yn = yi + d*np.sin(a0)
     else:
         xn = xn
         yn = yn
     phn = Particula(xn,yn,n)
     redhex.append(phn)        
     
-red_t = redhex[:]
-
-  
 def Mover_Espc (num):
     "Esta funcion mueve una particula definida de la red un solo paso"
     global red_t
@@ -239,7 +250,8 @@ def Mover_Espc (num):
         Pfin = Pn
         Pfin.E = Energia_Particula(Pn,red_t)
     return(Pfin)
-promedios = []
+    
+
 "ahora procedemos a optimisar la energia"
 def Optim (red,pasos):
     "Esta funcion toma una red, mueve sus particulas y analiza el cambio en la energia."
@@ -282,20 +294,21 @@ def Optim (red,pasos):
             if i % Ni == 0:
                 standev = np.std(Energias[-Ni:-1])
                 prom = np.average(Energias[-Ni:-1])
-                promedios.append(prom)
                 Cv = standev / prom   # Coeficiente de variacion
-                if abs(Cv) < 0.00000001:
+                if abs(Cv) < 0.0001:
                     Cv_count+=1
                 if Cv_count == 3:
-                    print('\n El proceso encontro convergencia despues de ' +str(i) +'pasos')#Montecarlo(2000,30,'joe')+str(i)+' pasos')
+                    print('\n El proceso encontro convergencia despues de ' +str(i) +'pasos')
                     break
             i += 1
 #            Grafica(red_t)
 #            print(Eo , Cv)
 #            if i % (pasos*0.2) == 0 :
-#                Guardar_archivo(redop,'backup'+str(i))      
+#                Guardar_archivo(red_t,'backup'+str(i))      
         else:
             continue
+        progress(i,pasos, status = 'Optimizando:')
+    print('\n')
     return(red_t)
      
     
@@ -329,7 +342,7 @@ def Montecarlo(h,porcentaje,nombre):
     tm = time()
     print('\n')
     redor = Quitar(porcentaje,redhex)
-    print('Se esta procesando el '+str(porcentaje)+'% de particulas ('+str(len(redor)))
+    print('Se esta procesando el '+str(porcentaje)+'% de particulas ('+str(len(redor))+') \n Numero de pasos maximos:'+str(h))
     Guardar_archivo(redor,nombre + '1st')
     redopt = Optim(redor,h)
     fin = datetime.now()
@@ -346,8 +359,9 @@ def Recuperar (archivo):
     global red_t
     red_recv = []
     with open(archivo) as arch_rec:
-        En = arch_rec.readline()
-        Emax = float(En)
+        linea1 = arch_rec.readline()
+        En = linea1.split(' ')
+        Emax = float(En[1])
         for line in arch_rec:
             part = line.split(' ')
             x = float(part[0])
@@ -360,7 +374,7 @@ def Recuperar (archivo):
     return(red_recv)
 
 #Emax = Energia_red(redhex)
-Montecarlo(10000,30,'Chandler')
+
 
 
 
