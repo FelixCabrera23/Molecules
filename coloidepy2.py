@@ -12,9 +12,9 @@ Optimizado para python 2
 
 import numpy as np
 import random
-from datetime import date
 from datetime import datetime
 from time import time
+import sys
 
 
 "Variables importantes a lo largo del programa:"
@@ -30,14 +30,27 @@ a0 = np.pi/3.0# Angulo minimo de la red hexagonal
 e = 3 #Profundidad del potencial
 omax = d*2 # distancia en el cual el potencial es cero
 Emax = float(1) # Esta es la energia maxima de la configuracion de la red hexagonal llena
-today = date.today()
 now = datetime.now()
 random.seed(1999)
+x = [] # Lista de las coordenadas de la red, ordenadas con los indices de las particulas
+y = []
+red_t = [] # Esta sera una copia de la red que nos servira para trabajar con ella, sin modificar la original
+Ecolormax = float(1)
 
 "Calculo de N"
 nc =int(L/d)
 nf = int((L)/(d*np.sin(a0)))
 N = nc*nf -int(nf/2)
+
+def progress(count, total, status=''):
+    bar_len = 60
+    filled_len = int(round(bar_len * count / float(total)))
+
+    percents = round(100.0 * count / float(total), 1)
+    bar = '#' * filled_len + '-' * (bar_len - filled_len)
+    sys.stdout.flush()
+    sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
+    sys.stdout.flush()
 
 class Particula(object):
     """Esta clase define la particula con sus coordenadas en el plano x y
@@ -66,18 +79,17 @@ for i in range(N-1):
     xn = xi + d
     yn = yi
     n = i +1
-    if int(xn) == int(xmax+r):
+    if round(xn,2) > round(xmax,2) and round(xn,2) < round(xmax +(0.66*d),2):
         xn = xmin
         yn = yi + d*np.sin(a0)
-    elif xn > xmax+0.01:
+    elif round(xn,2) > round(xmax + r,2):
         xn = xmin + r
         yn = yi + d*np.sin(a0)
     else:
         xn = xn
         yn = yn
     phn = Particula(xn,yn,n)
-    redhex.append(phn)     
-
+    redhex.append(phn)            
 
 
 def Mover (P):
@@ -93,13 +105,14 @@ def Mover (P):
         P = P
     return (P)
 
-def Mover_Particula (redor):
-    "Esta funcion mueve una particula aleatorea de la red un solo paso"
-    redt = redor[:]
-    num = int(random.random()*len(redt))
-    Pn = Mover(redt[num])
-    xs = []
-    ys = []
+
+def Mover_Espc (num):
+    "Esta funcion mueve una particula definida de la red un solo paso"
+    global red_t
+    global x
+    global y
+    Pn = Mover(red_t[num])
+
     ocupada = int
     i = int(0)
     s2 = float
@@ -107,17 +120,11 @@ def Mover_Particula (redor):
     yo = Pn.y
     s2 = L
     
-    for i in range(len(redt)):
-        x = redt[i].x
-        y = redt[i].y
-        xs.append(x)
-        ys.append(y)
-    
-    for i in range(len(redt)):
+    for i in range(len(red_t)):
         if i == num:
             continue
         else:
-            s2 = (xo - xs[i])**2 + (yo - ys[i])**2
+            s2 = (xo - x[i])**2 + (yo - y[i])**2
         
         if s2 < d**2:
             ocupada = 1
@@ -125,10 +132,12 @@ def Mover_Particula (redor):
         else:
             ocupada = 0
     if ocupada == 1:
-        redt[num] = redor[num]
+        Pfin = red_t[num]
     else:
-        redt[num] = Pn
-    return(redt)
+        Pfin = Pn
+        Pfin.E = Energia_Particula(Pn,red_t)
+    return(Pfin)
+    
 
 "Potencial de Lenard Jones"
 def Energia_LJ (P_o,P_ext):
@@ -161,61 +170,100 @@ def Energia_red(red):
     Eneta = Efinal/2.0
     return(Eneta)
     
+def Energia_Particula(P,red):
+    " Esta función toma una sola particula y calcula su energia al entrar ultima al sistema"
+    E = float()
+    for i in range(len(red)):
+        if i == P.n:
+            continue
+        else:
+            Ei =Energia_LJ(P,red[i])
+            E = E + Ei
+    return(E)
+    
 def Quitar (p,red):
-	"Esta funcion quita las particulas aleatoreamente, deja una red de p porciento de la original"
-	Ni = float
-	Ni = (100.0-p)/100.0
-	redhexn = red[:]
-	for i in range(int(Ni*N)):
-		num = int(random.random()*len(redhexn))
-		redhexn.pop(num)
-	for j in range(len(redhexn)):
-		redhexn[j] = Particula(redhexn[j].x,redhexn[j].y,j)
-	Energia_red(redhexn)
-	return(redhexn)
+    "Esta funcion quita las particulas aleatoreamente, deja una red de p porciento de la original"
+    global Emax
+    Ni = float
+    Ni = (100.0-p)/100.0
+    redhexn = red[:]
+    for i in range(int(Ni*N)):
+        num = int(random.random()*len(redhexn))
+        redhexn.pop(num)
+    for j in range(len(redhexn)):
+        redhexn[j] = Particula(redhexn[j].x,redhexn[j].y,j)
+    Emax = Energia_red(redhexn)
+    red_t = redhexn[:]    
+    return(redhexn)
    
     
 
 "ahora procedemos a optimisar la energia"
 def Optim (red,pasos):
     "Esta funcion toma una red, mueve sus particulas y analiza el cambio en la energia."
-    redop = red[:]
-    Eo = Energia_red(redop)
-    i = 0    
+    global red_t
+    global Emax
+    global x
+    global y
+    global Ac
+    x = []
+    y = []
+    if red != red_t:
+        Emax = Energia_red(red)
+        red_t = red[:]
+    for j in range(len(red_t)):
+        x.append(red_t[j].x)
+        y.append(red_t[j].y)
+    Eo = float()
+    if Emax == 1 :
+        Eo = Energia_red(red_t)
+    else:
+        Eo = Emax
+    Ac = 0    
     Energias = [1,2,3]
     Cv_count = 0
     
-    while i < pasos: 
-        redmov = Mover_Particula(redop)
-        Emov = Energia_red(redmov)
+    for i in range(pasos):
+        "Vamos a mover una particula aleaotrea"
+        num = int(random.random()*len(red_t))
+        Pmov = Mover_Espc(num)
+        Epo = (red_t[num].E)/2.0
+        Epm = (Pmov.E)/2.0
+        Emov = Eo - Epo + Epm
         Ni = len(red)
         
         if Emov < Eo:
             Eo = Emov
-            redop = redmov
+            Emax = Eo
+            red_t[num] = Pmov
+            x[num] = Pmov.x
+            y[num] = Pmov.y
             Energias.append(Emov)
             if i % Ni == 0:
                 standev = np.std(Energias[-Ni:-1])
                 prom = np.average(Energias[-Ni:-1])
                 Cv = standev / prom   # Coeficiente de variacion
-                if Cv < 0.001:
+                if abs(Cv) < 0.0001:
                     Cv_count+=1
-                if Cv_count == 6:
-                    print '\n El proceso encontro convergencia despues de '+str(i)+' pasos'
+                if Cv_count == 3:
+                    print '\n El proceso encontro convergencia despues de ' +str(i) +'pasos'
                     break
-            i += 1
-            if i % (pasos*0.2) == 0 :
-                Guardar_archivo(redop,'backup'+str(i))      
+            Ac += 1
+            if i % (pasos*0.2) == 0:
+                Guardar_archivo(red_t,'backup'+str(i))      
         else:
             continue
-    return(redop)
+        progress(i,pasos, status = 'Optimizando:')
+    print '\n'
+    print 'Se han aceptado ' +str(Ac) +' Pasos.'
+    return(red_t)
     
     
 def Guardar_archivo (red,nombre):
     "Esta función guarda la red a un archivo que se generara"
-    Ec = Energia_red(red)
-    file = open('# %s%.0f.txt' % (nombre,Ec),'w')
-    file.write('%f\n' % (Ec))
+    Ec = Emax
+    file = open('%s%.0f.txt' % (nombre,Ec),'w')
+    file.write('# %f\n' % (Ec))
     for i in range(len(red)):
         x = red[i].x
         y = red[i].y
@@ -225,22 +273,46 @@ def Guardar_archivo (red,nombre):
     return('Su archivo ha sido guardado con exito')
 
 def Montecarlo(h,porcentaje,nombre):
-    "Esta función hace uso de todas las erramientas antes desarrolladas"
-    print 'Bienvenido '+str(today)+' \n Calculando la energia maxima...'
-
+    """Esta funcion utiliza las funciones desarrolladas anteriormente y calcula la posicion optima de
+    una red de N particulas con radio r y el porcentaje de estas definido por el usuario
+    """
+    print 'Bienvenido: \nCalculando Energia...'
+    print(now)
     tm = time()
+    print '\n'
     redor = Quitar(porcentaje,redhex)
+    print 'Se esta procesando el '+str(porcentaje)+'% de particulas ('+str(len(redor))+')'
     Guardar_archivo(redor,nombre + '1st')
-    print 'Se esta procesando el '+str(porcentaje)+'% de particulas ('+str(len(redor))+'). \n Numero de pasos maximos:'+str(h)
     redopt = Optim(redor,h)
     fin = datetime.now()
     Guardar_archivo(redopt,nombre +'2nd')
-    Dt2 = time() - tm
-    print 'Calculado en un tiempo de '+str(Dt2)+'s. \n'
-    print fin
+    Dt2 = time() -tm
+    print 'Calculado para '+str(len(redor))+' particulas en un tiempo de '+str(Dt2)+'s. \n'
+    print 'Se han aceptado '+str(Ac)+' pasos, de un total de '+str(h)
+    print(fin)
     return()
 
-Montecarlo(10000,2,'helga')
+
+def Recuperar (archivo):
+    "Esta función sirve para recuperar un archivo de texto e interpretarlo como una red"
+    "Se debe utilizar el nombre en str"
+    global Emax
+    global red_t
+    red_recv = []
+    with open(archivo) as arch_rec:
+        linea1 = arch_rec.readline()
+        En = linea1.split(' ')
+        Emax = float(En[1])
+        for line in arch_rec:
+            part = line.split(' ')
+            x = float(part[0])
+            y = float(part[1])
+            red_recv.append(Particula(x,y))
+        for i in range(len(red_recv)):
+            red_recv[i] = Particula(red_recv[i].x,red_recv[i].y,i)
+        Energia_red(red_recv)
+    red_t = red_recv[:]
+    return(red_recv)
 
 
 
