@@ -53,39 +53,14 @@ def progress(count, total, status=''):
     sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
     sys.stdout.flush()
 
-def color(E):
-    if Emax == 1.0:
-        Eni = 0
-    else:
-        En = abs(Ecolormax) - abs(E)
-        if En != 0:
-            Eni = abs(E/En)
-        else:
-            Eni = 1
-    if Eni > 1:
-        Eni = 0
-    c1 = 'blue'
-    c2 = 'red'
-    c1 = np.array(mpl.colors.to_rgb(c1))
-    c2 = np.array(mpl.colors.to_rgb(c2))
-    return mpl.colors.to_hex((1-Eni)*c1 + Eni*c2)
 
-def circulo(x,y,c):
+def circulo(x,y):
     "define el circulo en las coordenadas y con su radio apropiado"
-    cn = color(c)
-    circ = plt.Circle((x,y),r,color = cn)
+    circ = plt.Circle((x,y),r)
     return circ
 
 def Grafica(red):
     "Esta parte plotea"
-    global colork
-    global Ecolormax
-    Energias = []
-    if Emax != 1.0:
-        for i in range(len(red_t)):
-            Energias.append(red_t[i].E)
-        colork = abs(min(Energias)-max(Energias))
-        Ecolormax =max(Energias)
     ax = plt.gca()
     for i in range(len(red)):
         ax.add_patch(red[i].grafica())
@@ -107,7 +82,7 @@ class Particula(object):
     def grafica(self):
         "Esto le da a cada particula su grafica"
         # Para llamarla usar Particula.grafica()
-        c = circulo(self.x,self.y, self.E)
+        c = circulo(self.x,self.y)
         return c
         
     def __repr__(self):
@@ -259,6 +234,7 @@ def Optim (red,pasos):
     global Emax
     global x
     global y
+    global Ac
     x = []
     y = []
     if red != red_t:
@@ -272,11 +248,11 @@ def Optim (red,pasos):
         Eo = Energia_red(red_t)
     else:
         Eo = Emax
-    i = 0    
+    Ac = 0    
     Energias = [1,2,3]
     Cv_count = 0
     
-    while i < pasos: 
+    for i in range(pasos): 
         "Vamos a mover una particula aleaotrea"
         num = int(random.random()*len(red_t))
         Pmov = Mover_Espc(num)
@@ -297,18 +273,19 @@ def Optim (red,pasos):
                 Cv = standev / prom   # Coeficiente de variacion
                 if abs(Cv) < 0.0001:
                     Cv_count+=1
-                if Cv_count == 3:
-                    print('\n El proceso encontro convergencia despues de ' +str(i) +'pasos')
+                if Cv_count == Ni/4:
+                    print('\n El proceso encontro convergencia despues de ' +str(i) +' pasos')
                     break
-            i += 1
+            Ac += 1
 #            Grafica(red_t)
 #            print(Eo , Cv)
 #            if i % (pasos*0.2) == 0 :
 #                Guardar_archivo(red_t,'backup'+str(i))      
         else:
             continue
-        progress(i,pasos, status = 'Optimizando:')
+#        progress(i,pasos, status = 'Optimizando:')
     print('\n')
+#    print('Se han aceptado ' +str(Ac) +' Pasos.')
     return(red_t)
      
     
@@ -342,13 +319,14 @@ def Montecarlo(h,porcentaje,nombre):
     tm = time()
     print('\n')
     redor = Quitar(porcentaje,redhex)
-    print('Se esta procesando el '+str(porcentaje)+'% de particulas ('+str(len(redor))+') \n Numero de pasos maximos:'+str(h))
+    print('Se esta procesando el '+str(porcentaje)+'% de particulas ('+str(len(redor))+')')
     Guardar_archivo(redor,nombre + '1st')
     redopt = Optim(redor,h)
     fin = datetime.now()
     Guardar_archivo(redopt,nombre +'2nd')
     Dt2 = time() -tm
     print('Calculado para '+str(len(redor))+' particulas en un tiempo de '+str(Dt2)+'s. \n')
+    print('Se han aceptado '+str(Ac)+' pasos, de un total de '+str(h))
     print(fin)
     return()
     
