@@ -6,7 +6,7 @@ Created on Fri Oct 11 23:39:50 2019
 @author: Félix Cabrera
 USAC - ECFM
 Proyecto de Materia Condensada: 
-Particulas en un resipiente
+Particulas en un recipiente
 """
 
 import matplotlib.pyplot as plt
@@ -19,8 +19,8 @@ import sys
 
 
 "Variables importantes a lo largo del programa:"
-L = 100.0 # Longitud de la caja
-r = L/40.0# Radio de las particulas 
+L = 20 # Longitud de la caja
+r = 0.5# Radio de las particulas 
 d = r*2 # Diametro de las particulas
 A = L*L # Area del recipiente
 xmin = r # Valor minimo de la coordenada x
@@ -41,7 +41,7 @@ Efin = float(1)
 
 "Calculo de N"
 nc =int(L/d)
-nf = int((L)/(d*np.sin(a0)))
+nf = int((L-r)/(d*np.sin(a0)))
 N = nc*nf -int(nf/2)
 
 def progress(count, total, status=''):
@@ -65,6 +65,8 @@ def Grafica(red):
     ax = plt.gca()
     for i in range(len(red)):
         ax.add_patch(red[i].grafica())
+    ax.set(ylabel = 'L x10^-6 [m]',title = 'Coloide')
+    plt.tight_layout()
     plt.axis([0,L,0,L])
     plt.show()
 
@@ -276,13 +278,13 @@ def Optim (red,pasos):
             x[num] = Pmov.x
             y[num] = Pmov.y
             Energias.append(Emov)
-            if i % Ni == 0:
+            if i % Ni/4 == 0:
                 standev = np.std(Energias[-Ni:-1])
                 prom = np.average(Energias[-Ni:-1])
                 Cv = standev / prom   # Coeficiente de variacion
                 if abs(Cv) < 0.000001:
                     Cv_count+=1
-                if Cv_count == int(Ni/4):
+                if Cv_count == int(Ni/6):
                     print('\n El proceso encontro convergencia despues de ' +str(i) +' pasos')
                     break
             Ac += 1
@@ -291,7 +293,16 @@ def Optim (red,pasos):
 #                Guardar_archivo(red_t,'backup'+str(i))      
         else:
             i += 1
-            continue
+            Lamda = random.random()
+            Ca = Ac/i
+            if Lamda > Ca:
+                Eo = Emov
+                red_t[num] = Pmov
+                x[num] = Pmov.x
+                y[num] = Pmov.y
+                Energias.append(Emov)
+            else:
+                continue
         progress(i,pasos, status = 'Optimizando:')
     Emax = Eo
     Efin = Eo
@@ -314,6 +325,8 @@ def Guardar_archivo (red_s,nombre):
     for j in range(len(red_s)):
         ax.add_patch(red_s[j].grafica())
     plt.axis([0,L,0,L])
+    ax.set(ylabel = 'L x10^-6 [m]',title = 'Coloide '+str(nombre))
+    plt.tight_layout()
     plt.savefig('%s%.0f.jpeg' %(nombre,Ec),dpi = 200)
     
     return('Su archivo ha sido guardado con exito')
@@ -402,7 +415,10 @@ def Caracterizacion(h,corridas,porcentaje):
     print('Calculada en un tiempo de: '+str(t2)+'s')
     Energias.append(Emax)
     t3 = time()
-    for i in range(corridas):
+    counter = 0
+    i = 0
+    while i < corridas:
+        print('corrida '+str(i)+'\n')
         redop = Optim(redop,h)
         t4 = time() - t3
         Energias.append(Efin)
@@ -410,14 +426,25 @@ def Caracterizacion(h,corridas,porcentaje):
         pas = h + i*h
         Pasos.append(pas)
         Pasos_ac.append(Ac)
-        Guardar_archivo(redop,'red'+str(porcentaje)+'p'+str(i))
+        i +=1
+        if i % int(corridas*0.2) == 0:
+            Guardar_archivo(redop,str(porcentaje)+' porciento_'+str(i))
+            print('\n')
+        if Ac == 0:
+            counter +=1
+        if counter == 100:
+            break
+            print('Se encontro convergencia despues de '+str(i)+' corridas.')
+        else:
+            continue
         
     "Grafica de tiempo vs Energia"
     plt.clf()
     fig, ax = plt.subplots()
     ax.plot(tiempos,Energias)
-    ax.set(xlabel='tiempo [s]', ylabel = 'Energias',title = 'Tiempo vs Energias')
+    ax.set(xlabel='tiempo [s]', ylabel = 'Energia x 10^-6 [J]',title = 'Tiempo vs Energias')
     ax.grid()
+    plt.tight_layout()
     plt.savefig('%stvsE.jpeg' %(porcentaje),dpi = 200)
     
     "Grafica de tiempo vs pasos "
@@ -426,55 +453,38 @@ def Caracterizacion(h,corridas,porcentaje):
     ax.plot(tiempos,Pasos)
     ax.set(xlabel = 'tiempo [s]' , ylabel = 'Pasos Montecarlo', title = 'Pasos Montecarlo vs tiempo')
     ax.grid()
+    plt.tight_layout()
     plt.savefig('%stvsP.jpeg' %(porcentaje),dpi = 200)
-x
+
     "Grafica de Pasos aceptados vs tiempo"
     plt.clf()
     fig, ax = plt.subplots()
     ax.plot(tiempos,Pasos_ac)
     ax.set(xlabel = 'tiempo [s]' , ylabel = 'Pasos Aceptados', title = 'Pasos aceptados vs tiempo')
     ax.grid()
+    plt.tight_layout()
     plt.savefig('%stvsP_ac.jpeg' %(porcentaje),dpi = 200)
     
     "Grafica de Energia vs Pasos Montecarlo"
     plt.clf()
     fig, ax = plt.subplots()
     ax.plot(Pasos,Energias)
-    ax.set(xlabel = 'Pasos Montecarlo', ylabel = 'Energia', title = 'Energia vs Pasos Montecarlo')
+    ax.set(xlabel = 'Pasos Montecarlo', ylabel = 'Energia x 10^-6 [J]', title = 'Energia vs Pasos Montecarlo')
     ax.grid()
+    plt.tight_layout()
     plt.savefig('%sEvsP.jpeg' %(porcentaje),dpi = 200)
     
-            
-        
-
-
-
-
-
-
-    
-
-    
-
-    
-    
-    
-    
-
-    
-
-
-
-
-
-    
-    
-
-
-
-
-
-
-
+    file2 = open('caracterizacion.txt','w')
+    file2.write('tiempo Energia Pasos_aceptados Pasos_montecarlo\n')
+    for i in range(len(tiempos)):
+        t = tiempos[i]
+        E = Energias[i]
+        Pa = Pasos_ac[i]
+        Pm = Pasos[i]
+        file2.write('%f %f %i %i\n' % (t,E,Pa,Pm))
+    file2.close()
+    return()
+#
+#Caracterizacion(44,100,5)
 
 
