@@ -10,6 +10,7 @@ Particulas en un resipiente
 """
 
 import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
 import random
 from datetime import datetime
@@ -254,11 +255,16 @@ def Optim (red,pasos):
     Energias = [1,2,3]
     Cv_count = 0
     i = 0
-    
+    saltos = 0
     while i < pasos: 
         "Vamos a mover una particula aleaotrea"
         num = int(random.random()*len(red_t))
         Pmov = Mover_Espc(num)
+        
+        if Pmov == red_t[num]:
+            saltos += 1
+            continue
+        
         Epo = (red_t[num].E)/2.0
         Epm = (Pmov.E)/2.0
         Emov = Eo - Epo + Epm
@@ -274,25 +280,21 @@ def Optim (red,pasos):
                 standev = np.std(Energias[-Ni:-1])
                 prom = np.average(Energias[-Ni:-1])
                 Cv = standev / prom   # Coeficiente de variacion
-                print(Cv)
-#                if abs(Cv) < 0.0001:
-#                    Cv_count+=1
-#                if Cv_count == int(Ni/4):
-#                    print('\n El proceso encontro convergencia despues de ' +str(i) +' pasos')
-#                    break
+                if abs(Cv) < 0.000001:
+                    Cv_count+=1
+                if Cv_count == int(Ni/4):
+                    print('\n El proceso encontro convergencia despues de ' +str(i) +' pasos')
+                    break
             Ac += 1
             i += 1
-#            Grafica(red_t)
-#            print(Eo, Cv_count)
 #            if i % (pasos*0.2) == 0 :
 #                Guardar_archivo(red_t,'backup'+str(i))      
         else:
             i += 1
             continue
-#        progress(i,pasos, status = 'Optimizando:')
+        progress(i,pasos, status = 'Optimizando:')
+    Emax = Eo
     Efin = Eo
-    print(str(Efin)+'\n')
-    print('Se han aceptado ' +str(Ac) +' Pasos.')
     return(red_t)
      
     
@@ -324,10 +326,10 @@ def Montecarlo(h,porcentaje,nombre):
     print('Bienvenido: \nCalculando Energia...')
     to = time()
     redor = Quitar(porcentaje,redhex)
-    tf = to - time()
+    tf = time() - to
     print('Energia inicial: '+str(Emax))
     print('Calculado en un tiempo de: '+str(tf))
-    print('Se esta procesando el '+str(porcentaje)+'% de particulas ('+str(len(redor))+')')
+    print('Se esta procesando el '+str(porcentaje)+'% de particulas ('+str(len(redor))+') \n')
     Guardar_archivo(redor,nombre + '1st')
     tm = time()
     redopt = Optim(redor,h)
@@ -338,7 +340,6 @@ def Montecarlo(h,porcentaje,nombre):
     print('Calculado para '+str(len(redor))+' particulas en un tiempo de '+str(Dt2)+'s. \n')
     print('Se han aceptado '+str(Ac)+' pasos, de un total de '+str(h))
     print(fin)
-    print('\ņ')
     return()
     
 def Recuperar (archivo):
@@ -355,21 +356,93 @@ def Recuperar (archivo):
             red_recv.append(Particula(x,y))
         for i in range(len(red_recv)):
             red_recv[i] = Particula(red_recv[i].x,red_recv[i].y,i)
-        Energia_red(red_recv)
+        Emax = Energia_red(red_recv)
     red_t = red_recv[:]
     return(red_recv)
 
 
+def Montecarlo_2(h,nombre):
+    """Esta funcion utiliza las funciones desarrolladas anteriormente y calcula la posicion optima de
+    una red de N particulas con radio r y el porcentaje de estas definido por el usuario
+    """
+    print(inicio)
+    print('Bienvenido: \nCalculando Energia...')
+    to = time()
+    Recuperar('datos.txt')
+    redor = red_t[:]
+    tf = time() - to
+    print('Energia inicial: '+str(Emax))
+    print('Calculado en un tiempo de: '+str(tf))
+    print('Se esta procesando el archivo con un numero de particulas: ('+str(len(redor))+')')
+    Guardar_archivo(redor,nombre + '1st')
+    tm = time()
+    redopt = Optim(redor,h)
+    fin = datetime.now()
+    Guardar_archivo(redopt,nombre +'2nd')
+    Dt2 = time() -tm
+    print('Energia final: '+str(Efin))
+    print('Calculado para '+str(len(redor))+' particulas en un tiempo de '+str(Dt2)+'s. \n')
+    print('Se han aceptado '+str(Ac)+' pasos, de un total de '+str(h))
+    print(fin)
+    return()
 
 
 
-
-
-
-
-
-
-
+def Caracterizacion(h,corridas,porcentaje):
+    "Esta funcion caracteriza el sistema en una nueva pc"
+    print('Bienvenido \n se caracterizara el sistema para '+str(corridas)+ 'de '+str(h)+' pasos cada una.')
+    tiempos = [0]
+    Energias = []
+    Pasos = [0]
+    Pasos_ac = [0]
+    t1 = time()
+    print('calculando energia inicial... ')
+    redop = Quitar(porcentaje,redhex)
+    t2 = time() - t1
+    print('Calculada en un tiempo de: '+str(t2)+'s')
+    Energias.append(Emax)
+    t3 = time()
+    for i in range(corridas):
+        redop = Optim(redop,h)
+        t4 = time() - t3
+        Energias.append(Efin)
+        tiempos.append(t4)
+        pas = h + i*h
+        Pasos.append(pas)
+        Pasos_ac.append(Ac)
+        Guardar_archivo(redop,'red'+str(porcentaje)+'p'+str(i))
+        
+    "Grafica de tiempo vs Energia"
+    plt.clf()
+    fig, ax = plt.subplots()
+    ax.plot(tiempos,Energias)
+    ax.set(xlabel='tiempo [s]', ylabel = 'Energias',title = 'Tiempo vs Energias')
+    ax.grid()
+    plt.savefig('%stvsE.jpeg' %(porcentaje),dpi = 200)
+    
+    "Grafica de tiempo vs pasos "
+    plt.clf()
+    fig, ax = plt.subplots()
+    ax.plot(tiempos,Pasos)
+    ax.set(xlabel = 'tiempo [s]' , ylabel = 'Pasos Montecarlo', title = 'Pasos Montecarlo vs tiempo')
+    ax.grid()
+    plt.savefig('%stvsP.jpeg' %(porcentaje),dpi = 200)
+x
+    "Grafica de Pasos aceptados vs tiempo"
+    plt.clf()
+    fig, ax = plt.subplots()
+    ax.plot(tiempos,Pasos_ac)
+    ax.set(xlabel = 'tiempo [s]' , ylabel = 'Pasos Aceptados', title = 'Pasos aceptados vs tiempo')
+    ax.grid()
+    plt.savefig('%stvsP_ac.jpeg' %(porcentaje),dpi = 200)
+    
+    "Grafica de Energia vs Pasos Montecarlo"
+    plt.clf()
+    fig, ax = plt.subplots()
+    ax.plot(Pasos,Energias)
+    ax.set(xlabel = 'Pasos Montecarlo', ylabel = 'Energia', title = 'Energia vs Pasos Montecarlo')
+    ax.grid()
+    plt.savefig('%sEvsP.jpeg' %(porcentaje),dpi = 200)
     
             
         
