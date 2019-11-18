@@ -113,10 +113,11 @@ import random
 from datetime import datetime
 from time import time
 import sys
+from scipy.spatial import Voronoi, voronoi_plot_2d
 
 "Variable de desición de potencial, seleccióne 0 para L-J o 1 para London"
 
-Potencial = int(1)
+Potencial = int(0)
 
 "Dimensiones de la caja y de las particulas"
 L = 20 # Longitud de la caja
@@ -124,9 +125,9 @@ r = 0.5# Radio de las particulas
 d = r*2 # Diametro de las particulas
 
 "Constantes de los potenciales"
-e = 1 #Profundidad del potencial
+e = 100 #Profundidad del potencial
 omax = d*2 # distancia en el cual el potencial es cero
-A = r*1.5 # Constante de London
+A = -r*1.5 # Constante de London*2
 
 "Variables importantes a lo largo del programa:"
 xmin = r # Valor minimo de la coordenada x
@@ -428,7 +429,8 @@ def Guardar_archivo (red_s,nombre):
     
     "Esta parte guarda la imagen de la red a un archivo.jpeg"
     plt.clf()
-    ax = plt.gca()
+    plt.figure(figsize=(4,4))
+    ax = plt.gca(aspect = 'equal')
     for j in range(len(red_s)):
         ax.add_patch(red_s[j].grafica())
     plt.axis([0,L,0,L])
@@ -437,6 +439,35 @@ def Guardar_archivo (red_s,nombre):
     plt.savefig('%s%.0f.jpeg' %(nombre,Ec),dpi = 200)
     
     return('Su archivo ha sido guardado con exito')
+    
+def Potencial_actual():
+    if Potencial == 0:
+        print('Potencial de L-J')
+    elif A < 0:
+        print('Potencial de London atractivo')
+    else:
+        print('Potencial de London repulsivo')
+    return()
+    
+def Grafica_voronoi(red):
+    "Esto Guarda el diagrama de voronoi de la red"
+    posiciones = []
+    for i in range(len(red)):
+        posiciones.append([red[i].x,red[i].y])
+        
+    plt.clf()
+    plt.figure(figsize =(4,4))
+    ax = plt.gca(aspect = 'equal')
+    
+    for particula in posiciones:
+        p = plt.Circle((particula[0],particula[1]),r,alpha=0.25,color= 'b')
+        plt.gca().add_patch(p)
+     
+    ax.set(title = 'Diagrama de Voronoi')
+    vor = Voronoi(posiciones)
+    voronoi_plot_2d(vor, show_vertices = False, line_width = 0.3, ax = ax, line_alpha = 1)
+    plt.savefig('diagrama_voronoi.jpeg',dpi = 200)
+    return()
 
 def Montecarlo_1(h,porcentaje,nombre):
     """Esta funcion utiliza las funciones desarrolladas anteriormente y calcula la posicion optima de
@@ -449,6 +480,7 @@ def Montecarlo_1(h,porcentaje,nombre):
     tf = time() - to
     print('Energia inicial: '+str(Emax))
     print('Calculado en un tiempo de: '+str(tf))
+    Potencial_actual()
     print('Se esta procesando el '+str(porcentaje)+'% de particulas ('+str(len(redor))+') \n')
     Guardar_archivo(redor,nombre + '1st')
     tm = time()
@@ -493,6 +525,7 @@ def Montecarlo_2(h,nombre):
     tf = time() - to
     print('Energia inicial: '+str(Emax))
     print('Calculado en un tiempo de: '+str(tf))
+    Potencial_actual()
     print('Se esta procesando el archivo con un numero de particulas: ('+str(len(redor))+')')
     Guardar_archivo(redor,nombre + '1st')
     tm = time()
@@ -526,6 +559,7 @@ def Montecarlo_3(h,corridas,porcentaje):
     t2 = time() - t1
     print('Calculada en un tiempo de: '+str(t2)+'s')
     Energias.append(Emax)
+    Potencial_actual()
     t3 = time()
     Cv_count = 0
     i = 0
@@ -539,23 +573,25 @@ def Montecarlo_3(h,corridas,porcentaje):
         Pasos.append(pas)
         Pasos_ac.append(Ac)
         i +=1
-        if i % int(corridas*0.1) == 0:
+        if i % int(corridas*0.2) == 0:
             Guardar_archivo(redop,str(porcentaje)+' porciento_'+str(i))
-            print('\n')
         Ni = int(corridas/4)
-        if i % Ni == 0:
-            standev = np.std(Energias[-Ni:-1])
-            prom = np.average(Energias[-Ni:-1])
-            Cv = standev / prom   # Coeficiente de variacion
-            if abs(Cv) < 0.001:
-                Cv_count+=1
-            if Cv_count == 3:
-                print('\n El proceso encontro convergencia despues de ' +str(i) +' corridas')
-                break
+        if Emax < 0:
+            if i % Ni == 0:
+                standev = np.std(Energias[-Ni:-1])
+                prom = np.average(Energias[-Ni:-1])
+                Cv = standev / prom   # Coeficiente de variacion
+                if abs(Cv) < 0.1:
+                    Cv_count+=1
+                if Cv_count == 3:
+                    print('\n El proceso encontro convergencia despues de ' +str(i) +' corridas')
+                    break
         else:
             continue
         progress(i,corridas, status = 'Optimizando:')
-        
+    Guardar_archivo(redop,str(porcentaje)+' porciento, configuración final')
+    Grafica_voronoi(redop)
+    
     "Grafica de tiempo vs Energia"
     plt.clf()
     fig, ax = plt.subplots()
@@ -603,20 +639,4 @@ def Montecarlo_3(h,corridas,porcentaje):
     file2.close()
     return()
     
-"Ejemplos"
-"Recomendación personal: usen la función Montecarlo_3"
-"Este calcula 10 millones de pasos para 20 porciento, para el potencial L-J"
-#Potencial = 0
-#Montecarlo_3(50000,200,20)
-
-"Este calcula 5 millones de pasos para 30 porciento, para el potencial de London"
-#Potencial = 1
-#Montecarlo_3(50000,100,30)
-
-"Este genera una red llena al 50 porciento y lo guarda en un archivo de texto"
-#red50 = Quitar(50,redhex)
-#Guardar_archivo(red50,'red al 50 porciento')
-
-
-
-
+Montecarlo_3(500,3000,90)
