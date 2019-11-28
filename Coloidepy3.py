@@ -127,7 +127,7 @@ d = r*2 # Diametro de las particulas
 "Constantes de los potenciales"
 e = 100 #Profundidad del potencial
 omax = d*2 # distancia en el cual el potencial es cero
-A = -r*1.5 # Constante de London*2
+A = 1 # Constante de London*2
 
 "Variables importantes a lo largo del programa:"
 xmin = r # Valor minimo de la coordenada x
@@ -142,6 +142,7 @@ x = [] # Lista ordenada de las coordenadas de la red, ordenadas con los indices 
 y = [] # Lista ordenada de las coordenadas de la red.
 red_t = [] # Esta sera una copia de la red que nos servira para trabajar con ella, sin modificar la original
 Efin = float(1) #Variable para almacenar valores temporales de energia.
+ci = int(0)  # Numero global de corridas
 
 "Calculo de N, para calcular el numero maximo de particulas"
 nc =int(L/d)
@@ -167,10 +168,12 @@ def circulo(x,y):
 
 def Grafica(red):
     "Esta parte plotea"
+    plt.figure(figsize=(6,6))
+    ax = plt.gca(aspect = 'equal')
     ax = plt.gca()
     for i in range(len(red)):
         ax.add_patch(red[i].grafica())
-    ax.set(ylabel = 'L x10^-6 [m]',title = 'Coloide')
+    ax.set(ylabel = 'L $ 10^{-6}[m]$')
     plt.tight_layout()
     plt.axis([0,L,0,L])
     plt.show()
@@ -362,6 +365,7 @@ def Optim (red,pasos):
     global y
     global Ac
     global Efin
+    global ci
     x = []
     y = []
     if red != red_t:
@@ -382,7 +386,7 @@ def Optim (red,pasos):
         "Vamos a mover una particula aleaotrea"
         num = int(random.random()*len(red_t))
         Pmov = Mover_Espc(num)
-        
+#        Grafica(red_t)     #quitar comentario para ver en tiempo real
         if Pmov == red_t[num]:
             continue
         
@@ -401,13 +405,14 @@ def Optim (red,pasos):
 
         else:
             i += 1
-            Lamda = random.random()*(1/3)
+            Lamda = random.random()*(1/(1+ci))
             Ca = (Ac/i)
             if Lamda > Ca:
                 Eo = Emov
                 red_t[num] = Pmov
                 x[num] = Pmov.x
                 y[num] = Pmov.y
+                Ac += 1
                 continue
             else:
                 continue
@@ -434,7 +439,7 @@ def Guardar_archivo (red_s,nombre):
     for j in range(len(red_s)):
         ax.add_patch(red_s[j].grafica())
     plt.axis([0,L,0,L])
-    ax.set(ylabel = 'L x10^-6 [m]',title = 'Coloide '+str(nombre))
+    ax.set(xlabel = 'L $ 10^{-6}$[m]', ylabel = 'L $ 10^{-6}$[m]')
     plt.tight_layout()
     plt.savefig('%s%.0f.jpeg' %(nombre,Ec),dpi = 200)
     
@@ -458,14 +463,13 @@ def Grafica_voronoi(red):
     plt.clf()
     plt.figure(figsize =(4,4))
     ax = plt.gca(aspect = 'equal')
-    
-    for particula in posiciones:
-        p = plt.Circle((particula[0],particula[1]),r,alpha=0.25,color= 'b')
-        plt.gca().add_patch(p)
-     
-    ax.set(title = 'Diagrama de Voronoi')
+    box=plt.Rectangle((0,0),L,L,fill=False,lw=2)#Dibujo de la cajas
+    plt.gca().add_patch(box)
+        
+    ax.set(xlabel = 'L $10^{-6}$ [m]', ylabel = 'L $10^{-6}$ [m]')
     vor = Voronoi(posiciones)
     voronoi_plot_2d(vor, show_vertices = False, line_width = 0.3, ax = ax, line_alpha = 1)
+    plt.tight_layout()
     plt.savefig('diagrama_voronoi.jpeg',dpi = 200)
     return()
 
@@ -485,6 +489,7 @@ def Montecarlo_1(h,porcentaje,nombre):
     Guardar_archivo(redor,nombre + '1st')
     tm = time()
     redopt = Optim(redor,h)
+
     fin = datetime.now()
     Guardar_archivo(redopt,nombre +'2nd')
     Dt2 = time() -tm
@@ -547,6 +552,7 @@ def Montecarlo_3(h,corridas,porcentaje):
     tiempos. Guardara los archivos con los datos utilizados para generar estas graficas en un 
     documento .txt llamado caracterización.
     """
+    global ci
     print('Bienvenido \n Se realizaran '+str(corridas)+ ' corridas, de '+str(h)+' pasos cada una. \n Sobre una configuración de '+str(porcentaje)+' porciento de particulas')
     tiempos = [0]
     Energias = []
@@ -566,6 +572,7 @@ def Montecarlo_3(h,corridas,porcentaje):
     while i < corridas:
 
         redop = Optim(redop,h)
+#        Grafica(redop)    # Descomentar para ver en tiempo real
         t4 = time() - t3
         Energias.append(Efin)
         tiempos.append(t4)
@@ -573,6 +580,8 @@ def Montecarlo_3(h,corridas,porcentaje):
         Pasos.append(pas)
         Pasos_ac.append(Ac)
         i +=1
+        ci = i/(corridas*0.1)
+        progress(i,corridas, status = 'Optimizando:')
         if i % int(corridas*0.2) == 0:
             Guardar_archivo(redop,str(porcentaje)+' porciento_'+str(i))
         Ni = int(corridas/4)
@@ -588,7 +597,7 @@ def Montecarlo_3(h,corridas,porcentaje):
                     break
         else:
             continue
-        progress(i,corridas, status = 'Optimizando:')
+        
     Guardar_archivo(redop,str(porcentaje)+' porciento, configuración final')
     Grafica_voronoi(redop)
     
@@ -638,5 +647,108 @@ def Montecarlo_3(h,corridas,porcentaje):
         file2.write('%f %f %i %i\n' % (t,E,Pa,Pm))
     file2.close()
     return()
+
+def Montecarlo_4(h,corridas):
+    """Esta función realiza una aproximación por el metodo de montecarlo
+    En varias etapas. Al finalizar guardara automaticamente las graficas de la energia y los
+    tiempos. Guardara los archivos con los datos utilizados para generar estas graficas en un 
+    documento .txt llamado caracterización.
+    """
+    redop = Recuperar('config_inicial.txt')
+    porcentaje = int((len(redop)/len(redhex))*100)
     
-Montecarlo_3(500,3000,90)
+    
+    print('Bienvenido \n Se realizaran '+str(corridas)+ ' corridas, de '+str(h)+' pasos cada una. \n Sobre una configuración de '+str(porcentaje)+' porciento de particulas')
+    tiempos = [0]
+    Energias = []
+    Pasos = [0]
+    Pasos_ac = [0]
+    t1 = time()
+    print('Calculando energia inicial... ')
+#    Grafica(redop)
+    Guardar_archivo(redop,str(porcentaje)+' porciento, configuración inicial')
+    t2 = time() - t1
+    print('Calculada en un tiempo de: '+str(t2)+'s')
+    Energias.append(Emax)
+    Potencial_actual()
+    t3 = time()
+    Cv_count = 0
+    i = 0
+    while i < corridas:
+
+        redop = Optim(redop,h)
+        t4 = time() - t3
+        Energias.append(Efin)
+        tiempos.append(t4)
+        pas = h + i*h
+        Pasos.append(pas)
+        Pasos_ac.append(Ac)
+        i +=1
+        progress(i,corridas, status = 'Optimizando:')
+        if i % int(corridas*0.2) == 0:
+            Guardar_archivo(redop,str(porcentaje)+' porciento_'+str(i))
+        Ni = int(corridas/4)
+        if Emax < 0:
+            if i % Ni == 0:
+                standev = np.std(Energias[-Ni:-1])
+                prom = np.average(Energias[-Ni:-1])
+                Cv = standev / prom   # Coeficiente de variacion
+                if abs(Cv) < 0.1:
+                    Cv_count+=1
+                if Cv_count == 3:
+                    print('\n El proceso encontro convergencia despues de ' +str(i) +' corridas')
+                    break
+        else:
+            continue
+        
+    Guardar_archivo(redop,str(porcentaje)+' porciento, configuración final')
+    Grafica_voronoi(redop)
+    
+    "Grafica de tiempo vs Energia"
+    plt.clf()
+    fig, ax = plt.subplots()
+    ax.plot(tiempos,Energias)
+    ax.set(xlabel='tiempo [s]', ylabel = 'Energia x 10^-6 [J]',title = 'Tiempo vs Energias')
+    ax.grid()
+    plt.tight_layout()
+    plt.savefig('%stvsE.jpeg' %(porcentaje),dpi = 200)
+    
+    "Grafica de tiempo vs pasos "
+    plt.clf()
+    fig, ax = plt.subplots()
+    ax.plot(tiempos,Pasos)
+    ax.set(xlabel = 'tiempo [s]' , ylabel = 'Pasos Montecarlo', title = 'Pasos Montecarlo vs tiempo')
+    ax.grid()
+    plt.tight_layout()
+    plt.savefig('%stvsP.jpeg' %(porcentaje),dpi = 200)
+
+    "Grafica de Pasos aceptados vs tiempo"
+    plt.clf()
+    fig, ax = plt.subplots()
+    ax.plot(tiempos,Pasos_ac)
+    ax.set(xlabel = 'tiempo [s]' , ylabel = 'Pasos Aceptados', title = 'Pasos aceptados vs tiempo')
+    ax.grid()
+    plt.tight_layout()
+    plt.savefig('%stvsP_ac.jpeg' %(porcentaje),dpi = 200)
+    
+    "Grafica de Energia vs Pasos Montecarlo"
+    plt.clf()
+    fig, ax = plt.subplots()
+    ax.plot(Pasos,Energias)
+    ax.set(xlabel = 'Pasos Montecarlo', ylabel = 'Energia x 10^-6 [J]', title = 'Energia vs Pasos Montecarlo')
+    ax.grid()
+    plt.tight_layout()
+    plt.savefig('%sEvsP.jpeg' %(porcentaje),dpi = 200)
+    
+    file2 = open('caracterizacion.txt','w')
+    file2.write('tiempo Energia Pasos_aceptados Pasos_montecarlo\n')
+    for i in range(len(tiempos)):
+        t = tiempos[i]
+        E = Energias[i]
+        Pa = Pasos_ac[i]
+        Pm = Pasos[i]
+        file2.write('%f %f %i %i\n' % (t,E,Pa,Pm))
+    file2.close()
+    return()
+
+    
